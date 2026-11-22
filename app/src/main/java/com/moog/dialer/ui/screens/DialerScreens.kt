@@ -913,7 +913,7 @@ private fun RecentsScreen(
                 ) {
                     MoogSegmentedControl(
                         options = listOf("All", "Missed"),
-                        selectedIndex = if (filter == "Missed") 1 else 0,
+                        selectedIndex = when (filter) { "All" -> 0; "Missed" -> 1; else -> -1 },
                         onSelected = { filter = if (it == 1) "Missed" else "All" },
                         modifier = Modifier.weight(1f)
                     )
