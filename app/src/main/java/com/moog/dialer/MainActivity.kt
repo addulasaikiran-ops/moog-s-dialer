@@ -110,9 +110,11 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
     }
     val contacts by contactsViewModel.contacts.collectAsState()
     val loading by contactsViewModel.loading.collectAsState()
-    val isDefaultDialer = remember(context) {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-            context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_DIALER) == true
+    var isDefaultDialer by remember {
+        mutableStateOf(
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_DIALER) == true
+        )
     }
     var hasCallLogPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED)
@@ -144,11 +146,24 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
         if (hasContactsPermission) contactsViewModel.refresh()
     }
 
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == Tab.Recents) {
+            isDefaultDialer = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_DIALER) == true
+        }
+    }
+
     LaunchedEffect(selectedTab, isDefaultDialer, hasCallLogPermission) {
         if (selectedTab == Tab.Recents && isDefaultDialer && hasCallLogPermission) {
             loadingRecentCalls = true
-            recentCalls = CallLogRepository(context.contentResolver).getRecentCalls()
-            loadingRecentCalls = false
+            try {
+                recentCalls = CallLogRepository(context.contentResolver).getRecentCalls()
+            } catch (_: SecurityException) {
+                hasCallLogPermission = false
+                recentCalls = emptyList()
+            } finally {
+                loadingRecentCalls = false
+            }
         }
     }
 
