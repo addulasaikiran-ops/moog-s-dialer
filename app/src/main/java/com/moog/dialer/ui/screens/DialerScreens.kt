@@ -23,6 +23,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -44,6 +45,11 @@ import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -327,6 +333,8 @@ private fun KeypadScreen(
     onDial: () -> Unit,
     onChooseContact: (String) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val haptics = LocalHapticFeedback.current
     val keys = listOf(
         listOf("1" to "", "2" to "ABC", "3" to "DEF"),
         listOf("4" to "GHI", "5" to "JKL", "6" to "MNO"),
@@ -337,73 +345,187 @@ private fun KeypadScreen(
         if (number.isBlank()) emptyList()
         else contacts.filter { T9Search.matches(it, number) }.take(3)
     }
+    val numberSize = when {
+        number.length <= 8 -> 34.sp
+        number.length <= 12 -> 30.sp
+        number.length <= 16 -> 26.sp
+        else -> 22.sp
+    }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 26.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Spacer(Modifier.height(20.dp))
-        Text("KEYPAD", color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(12.dp))
-        Row(Modifier.fillMaxWidth().height(54.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                BasicTextField(
-                    value = number,
-                    onValueChange = { onNumberChange(it.filter { c -> c.isDigit() || c == '+' || c == '*' || c == '#' }.take(24)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    textStyle = TextStyle(color = MoogColors.label, fontSize = 30.sp, textAlign = TextAlign.Center, letterSpacing = 1.sp),
-                    decorationBox = { inner ->
-                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            if (number.isEmpty()) Text("Enter a number", color = MoogColors.secondaryLabel.copy(alpha = 0.65f), fontSize = 23.sp)
-                            inner()
+    Column(
+        Modifier.fillMaxSize().padding(horizontal = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.height(16.dp))
+
+        if (suggestions.isNotEmpty()) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                suggestions.forEach { contact ->
+                    Column(
+                        Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                            .background(MoogColors.surface)
+                            .clickable { onChooseContact(contact.phoneNumber) }
+                            .padding(horizontal = 9.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            contact.displayName,
+                            color = MoogColors.label,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1
+                        )
+                        Text(
+                            contact.phoneNumber,
+                            color = MoogColors.secondaryLabel,
+                            fontSize = 11.sp,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+
+        Box(
+            Modifier.fillMaxWidth().height(62.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            BasicTextField(
+                value = number,
+                onValueChange = {
+                    onNumberChange(it.filter { c -> c.isDigit() || c == '+' || c == '*' || c == '#' }.take(24))
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                textStyle = TextStyle(
+                    color = MoogColors.label,
+                    fontSize = numberSize,
+                    textAlign = TextAlign.Center,
+                    letterSpacing = 0.5.sp
+                ),
+                decorationBox = { inner ->
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        if (number.isEmpty()) {
+                            Text(
+                                "Enter a number",
+                                color = MoogColors.secondaryLabel,
+                                fontSize = 22.sp
+                            )
+                        }
+                        inner()
+                    }
+                }
+            )
+        }
+
+        if (number.isNotBlank()) {
+            TextButton(
+                onClick = {
+                    val addContact = Intent(ContactsContract.Intents.Insert.ACTION).apply {
+                        type = ContactsContract.RawContacts.CONTENT_TYPE
+                        putExtra(ContactsContract.Intents.Insert.PHONE, number)
+                    }
+                    runCatching { context.startActivity(addContact) }
+                },
+                modifier = Modifier.heightIn(min = 44.dp)
+            ) {
+                Text("Add Number", color = MoogColors.blue, style = MaterialTheme.typography.bodyMedium)
+            }
+        } else {
+            Spacer(Modifier.height(44.dp))
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            keys.forEach { row ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    row.forEach { (digit, letters) ->
+                        val interactionSource = remember(digit) { MutableInteractionSource() }
+                        val pressed by interactionSource.collectIsPressedAsState()
+                        val keyColor by animateColorAsState(
+                            targetValue = if (pressed) MoogColors.separator else MoogColors.keyFill,
+                            label = "key-press"
+                        )
+                        Box(
+                            Modifier.size(78.dp)
+                                .clip(CircleShape)
+                                .background(keyColor)
+                                .combinedClickable(
+                                    interactionSource = interactionSource,
+                                    indication = null,
+                                    onClick = {
+                                        haptics.performHapticFeedback(HapticFeedbackType.KeyboardTap)
+                                        onNumberChange(number + digit)
+                                    },
+                                    onLongClick = if (digit == "0") {
+                                        {
+                                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            onNumberChange(number + "+")
+                                        }
+                                    } else null
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    digit,
+                                    color = MoogColors.label,
+                                    fontSize = 36.sp,
+                                    fontWeight = FontWeight.Light
+                                )
+                                if (letters.isNotEmpty()) {
+                                    Text(
+                                        letters,
+                                        color = MoogColors.secondaryLabel,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 1.2.sp
+                                    )
+                                }
+                            }
                         }
                     }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Box(Modifier.fillMaxWidth().height(86.dp)) {
+            Box(
+                Modifier.align(Alignment.Center).size(78.dp).clip(CircleShape)
+                    .background(MoogColors.green)
+                    .clickable(onClick = onDial),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Call,
+                    contentDescription = "Call entered number",
+                    tint = Color.White,
+                    modifier = Modifier.size(30.dp)
                 )
             }
             if (number.isNotEmpty()) {
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Backspace, "Delete", tint = MoogColors.secondaryLabel) }
-            }
-        }
-        if (suggestions.isNotEmpty()) {
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MoogColors.surface)) {
-                suggestions.forEach { contact ->
-                    Row(
-                        Modifier.fillMaxWidth().clickable { onChooseContact(contact.phoneNumber) }.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Avatar(contact.displayName)
-                        Spacer(Modifier.width(10.dp))
-                        Column {
-                            Text(contact.displayName, color = MoogColors.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                            Text(contact.phoneNumber, color = MoogColors.secondaryLabel, fontSize = 11.sp)
-                        }
-                    }
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.align(Alignment.CenterEnd).size(52.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Backspace,
+                        contentDescription = "Delete last digit",
+                        tint = MoogColors.secondaryLabel
+                    )
                 }
             }
         }
-        Spacer(Modifier.weight(1f))
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            keys.forEach { row ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    row.forEach { (digit, letters) ->
-                        Column(
-                            Modifier.weight(1f).height(66.dp).clip(CircleShape).background(MoogColors.surface)
-                                .clickable { onNumberChange(number + digit) },
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(digit, color = MoogColors.label, fontSize = 26.sp, fontWeight = FontWeight.Normal)
-                            if (letters.isNotEmpty()) Text(letters, color = MoogColors.secondaryLabel, fontSize = 8.sp, letterSpacing = 1.5.sp)
-                        }
-                    }
-                }
-            }
-        }
-        Spacer(Modifier.height(18.dp))
-        Box(
-            Modifier.size(62.dp).clip(CircleShape).background(MoogColors.blue).clickable(onClick = onDial),
-            contentAlignment = Alignment.Center
-        ) { Icon(Icons.Default.Call, contentDescription = "Open phone dialer", tint = Color.White, modifier = Modifier.size(25.dp)) }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(8.dp))
     }
 }
 
