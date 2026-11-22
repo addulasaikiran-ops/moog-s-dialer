@@ -109,7 +109,7 @@ class SpamProtectionActivity : ComponentActivity() {
                         } else {
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 items(blocked, key = { it }) { item ->
-                                    Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                                    Card(colors = CardDefaults.cardColors(containerColor = MoogColors.surface)) {
                                         Row(
                                             Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
                                             verticalAlignment = Alignment.CenterVertically
