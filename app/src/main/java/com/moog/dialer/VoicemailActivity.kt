@@ -1,5 +1,6 @@
 package com.moog.dialer
 
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -110,10 +111,10 @@ private fun VoicemailScreen(onBack: () -> Unit) {
     val unreadCount = messages.count { !it.isRead }
 
     MoogLargeTitleScaffold(
-        title = "Voicemail",
+        title = stringResource(R.string.voicemail),
         navigationIcon = {
             IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MoogColors.blue)
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back), tint = MoogColors.blue)
             }
         },
         actions = {
@@ -121,7 +122,7 @@ private fun VoicemailScreen(onBack: () -> Unit) {
                 VoicemailRepository.requestSync(context)
                 refreshKey++
             }) {
-                Icon(Icons.Default.Refresh, contentDescription = "Refresh voicemail", tint = MoogColors.blue)
+                Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh_voicemail), tint = MoogColors.blue)
             }
         }
     ) { scaffoldPadding ->
@@ -143,7 +144,7 @@ private fun VoicemailScreen(onBack: () -> Unit) {
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MoogColors.surface).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("CARRIER VISUAL VOICEMAIL", color = MoogColors.blue, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    Text(stringResource(R.string.carrier_visual_voicemail), color = MoogColors.blue, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                     Text(
                         when {
                             !isDefaultDialer -> "Set MOOG'S DIALER as your default Phone app"
@@ -155,27 +156,27 @@ private fun VoicemailScreen(onBack: () -> Unit) {
                         color = MoogColors.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        "Messages appear here only when a carrier or voicemail source provisions them through Android. MOOG does not record missed calls or create carrier messages.",
+                        stringResource(R.string.voicemail_source_explanation),
                         color = MoogColors.secondaryLabel, fontSize = 11.sp, lineHeight = 16.sp
                     )
                     when (loadResult) {
                         VoicemailLoadResult.PermissionRequired -> Button(
                             onClick = { voicemailPermissionLauncher.launch(Manifest.permission.ADD_VOICEMAIL) },
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text("Allow voicemail access") }
+                        ) { Text(stringResource(R.string.allow_voicemail_access)) }
                         VoicemailLoadResult.ProviderUnavailable -> OutlinedButton(
                             onClick = { refreshKey++ }, modifier = Modifier.fillMaxWidth()
-                        ) { Text("Try again") }
+                        ) { Text(stringResource(R.string.try_again)) }
                         else -> Unit
                     }
                     if (!hasNotificationPermission && android.os.Build.VERSION.SDK_INT >= 33) {
                         OutlinedButton(
                             onClick = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text("Enable new voicemail notifications") }
+                        ) { Text(stringResource(R.string.enable_voicemail_notifications)) }
                     }
                     if (!isDefaultDialer) {
-                        Text("Android delivers visual voicemail events only to the default Phone app.", color = MoogColors.secondaryLabel, fontSize = 10.sp)
+                        Text(stringResource(R.string.default_phone_visual_voicemail_note), color = MoogColors.secondaryLabel, fontSize = 10.sp)
                     }
                 }
             }
@@ -186,8 +187,8 @@ private fun VoicemailScreen(onBack: () -> Unit) {
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MoogColors.surface).padding(20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Your inbox is clear", color = MoogColors.label, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                        Text("When a supported voicemail source syncs a message, it will show up here.", color = MoogColors.secondaryLabel, fontSize = 11.sp)
+                        Text(stringResource(R.string.inbox_clear), color = MoogColors.label, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                        Text(stringResource(R.string.inbox_sync_hint), color = MoogColors.secondaryLabel, fontSize = 11.sp)
                     }
                 }
             }
@@ -220,25 +221,25 @@ private fun VoicemailScreen(onBack: () -> Unit) {
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MoogColors.surface).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("CALL YOUR VOICEMAIL", color = MoogColors.blue, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-                    Text("Carrier mailbox fallback", color = MoogColors.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Save the voicemail access number supplied by your carrier. MOOG does not guess a carrier code.", color = MoogColors.secondaryLabel, fontSize = 11.sp, lineHeight = 16.sp)
-                    OutlinedTextField(value = defaultNumber, onValueChange = { defaultNumber = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Default voicemail number") }, singleLine = true)
+                    Text(stringResource(R.string.call_your_voicemail), color = MoogColors.blue, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    Text(stringResource(R.string.carrier_mailbox_fallback), color = MoogColors.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.save_voicemail_number_hint), color = MoogColors.secondaryLabel, fontSize = 11.sp, lineHeight = 16.sp)
+                    OutlinedTextField(value = defaultNumber, onValueChange = { defaultNumber = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.default_voicemail_number)) }, singleLine = true)
                     Button(onClick = { VoicemailRepository.saveNumber(context, null, defaultNumber) }, modifier = Modifier.fillMaxWidth(), enabled = defaultNumber.isNotBlank()) {
-                        Text("Save voicemail number")
+                        Text(stringResource(R.string.save_voicemail_number))
                     }
                     OutlinedButton(onClick = { if (defaultNumber.isNotBlank()) openVoicemailCall(context, defaultNumber, null) }, modifier = Modifier.fillMaxWidth(), enabled = defaultNumber.isNotBlank()) {
                         Icon(Icons.Default.Call, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Call voicemail")
+                        Text(stringResource(R.string.call_voicemail))
                     }
                     if (!phoneNumberPermission) {
                         TextButton(onClick = { phonePermissionLauncher.launch(arrayOf(Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_PHONE_NUMBERS)) }) {
-                            Text("Allow SIM access to configure separate mailbox numbers")
+                            Text(stringResource(R.string.allow_sim_access_mailbox))
                         }
                     } else if (phoneAccounts.isNotEmpty()) {
                         HorizontalDivider()
-                        Text("PER-SIM MAILBOX NUMBERS", color = MoogColors.secondaryLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
+                        Text(stringResource(R.string.per_sim_mailbox_numbers), color = MoogColors.secondaryLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
                         phoneAccounts.forEach { account ->
                             val value = perSimNumbers[account.key].orEmpty()
                             OutlinedTextField(value = value, onValueChange = { perSimNumbers = perSimNumbers + (account.key to it) }, modifier = Modifier.fillMaxWidth(), label = { Text(account.label) }, singleLine = true)
@@ -258,10 +259,10 @@ private fun VoicemailScreen(onBack: () -> Unit) {
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MoogColors.surface).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text("CUSTOM VOICEMAIL SERVER", color = MoogColors.blue, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-                    Text("Integration point prepared · server not connected", color = MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.custom_voicemail_server), color = MoogColors.blue, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    Text(stringResource(R.string.custom_voicemail_not_connected), color = MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     Text(
-                        "A private voicemail server needs a real endpoint, authentication contract, secure media storage, and carrier call-forwarding setup. No endpoint or credentials are configured, so this build does not pretend to host or retrieve custom-server messages.",
+                        stringResource(R.string.custom_voicemail_server_explanation),
                         color = MoogColors.secondaryLabel, fontSize = 11.sp, lineHeight = 16.sp
                     )
                 }
@@ -323,12 +324,12 @@ private fun VoicemailMessageCard(
                 Spacer(Modifier.width(5.dp))
                 Text(if (!message.hasContent) "Audio unavailable" else if (active && player.isPlaying) "Pause" else "Play")
             }
-            TextButton(onClick = onCallback, enabled = message.number.isNotBlank()) { Text("Callback") }
+            TextButton(onClick = onCallback, enabled = message.number.isNotBlank()) { Text(stringResource(R.string.callback)) }
             Spacer(Modifier.weight(1f))
             TextButton(onClick = onToggleRead) { Text(if (message.isRead) "Mark unread" else "Mark read") }
-            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Delete voicemail", tint = MoogColors.secondaryLabel) }
+            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_voicemail), tint = MoogColors.secondaryLabel) }
         }
-        if (!message.hasContent) Text("The voicemail source has not made the audio content available yet.", color = MoogColors.secondaryLabel, fontSize = 10.sp)
+        if (!message.hasContent) Text(stringResource(R.string.voicemail_audio_not_available), color = MoogColors.secondaryLabel, fontSize = 10.sp)
     }
 }
 
