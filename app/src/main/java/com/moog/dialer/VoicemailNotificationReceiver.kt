@@ -15,9 +15,7 @@ import androidx.core.content.ContextCompat
 
 class VoicemailNotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != VoicemailContract.ACTION_NEW_VOICEMAIL &&
-            intent.action != Intent.ACTION_PROVIDER_CHANGED
-        ) return
+        if (intent.action != VoicemailContract.ACTION_NEW_VOICEMAIL) return
 
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
