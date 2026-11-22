@@ -11,6 +11,7 @@ import android.telecom.Call
 import android.telecom.CallAudioState
 import android.telecom.InCallService
 import com.moog.dialer.InCallActivity
+import com.moog.dialer.SpamBlockRepository
 
 class MoogInCallService : InCallService() {
     override fun onCreate() {
@@ -21,6 +22,12 @@ class MoogInCallService : InCallService() {
     override fun onCallAdded(call: Call) {
         super.onCallAdded(call)
         CallSession.attach(this, call)
+        val incomingNumber = call.details.handle?.schemeSpecificPart.orEmpty()
+        if (call.state == Call.STATE_RINGING && SpamBlockRepository.isBlocked(this, incomingNumber)) {
+            // Only numbers explicitly added by the user are automatically rejected.
+            runCatching { call.reject(false, null) }
+            return
+        }
         refreshCallNotification()
     }
 
