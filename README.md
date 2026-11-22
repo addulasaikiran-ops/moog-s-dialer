@@ -1,33 +1,32 @@
 # MOOG'S DIALER
 
-A thoughtfully designed Android dialer experience built with Kotlin and Jetpack Compose.
+An iPhone-inspired Android dialer experience built with Kotlin and Jetpack Compose.
 
-> Current milestone: polished app foundation and interactive UI. Device integration and default-dialer qualification are intentionally separate milestones.
+## Current implementation
 
-## Product direction
+- Light, iOS-inspired visual language with rounded surfaces and a blue accent
+- Five destinations: Favorites, Recents, Contacts, Keypad, and Settings
+- Number entry with delete and system dialer handoff through `ACTION_DIAL`
+- On-device Contacts Provider integration behind an explicit runtime permission
+- T9-style contact matching by name and phone number
+- Local favorites saved on the device with SharedPreferences
+- No account, backend, or cloud contact synchronization
 
-- Distinctive graphite / warm-white / electric-lime visual identity
-- Keypad-first calling flow
-- Dedicated Recents, Contacts, Favorites, and Settings destinations
-- Search and number entry
-- Accessible touch targets and clear empty states
-- Native Android handoff for dialing
-
-## Stack
+## Technology
 
 - Kotlin
 - Jetpack Compose + Material 3
-- AndroidX Activity
+- AndroidX ViewModel and Kotlin Coroutines
+- Android Contacts Provider
 - Android SDK 35 / min SDK 26
-- MVVM-friendly package structure
 
 ## Open the project
 
 1. Clone this repository.
 2. Open the root folder in Android Studio.
 3. Install Android SDK Platform 35 if prompted.
-4. Sync Gradle.
-5. Run the `app` configuration.
+4. Allow Gradle sync to complete.
+5. Run the `app` configuration when we reach the testing milestone.
 
 ## Build
 
@@ -43,22 +42,25 @@ Windows PowerShell:
 .\\gradlew.bat assembleDebug
 ```
 
-## Milestones
+## Development roadmap
 
-- [x] Branded Compose app shell and keypad
-- [x] Main navigation and responsive content surfaces
-- [x] Number entry, delete, clear, and system dialer handoff
-- [x] Search-ready Contacts / Recents / Favorites surfaces
-- [x] Theme and settings surface
-- [ ] Real Contacts Provider integration and permission UX
-- [ ] Real CallLog integration and permission UX
-- [ ] T9 matching and contact suggestions
-- [ ] Default Phone role eligibility and Telecom integration
-- [ ] In-call UI via InCallService and notification/foreground-service requirements
-- [ ] Dual-SIM behavior, accessibility audit, and device QA
+- [x] Branded Compose application shell
+- [x] iPhone-inspired light interface and five-tab navigation
+- [x] Keypad with number entry, delete, and system dialer handoff
+- [x] Contacts Provider repository and runtime permission rationale
+- [x] T9-style matching for contact names and phone numbers
+- [x] Device-local favorites persistence
+- [ ] Contact detail screen and multi-number contact handling
+- [ ] Recent calls backed by Android CallLog after Phone role eligibility
+- [ ] Default Phone role and Android Telecom integration
+- [ ] In-call UI through `InCallService`
+- [ ] Dual-SIM behavior and carrier/device edge cases
+- [ ] Accessibility, automated checks, device QA, and release build
 
-## Important platform note
+## Platform and privacy notes
 
-A complete replacement phone app must satisfy Android's dialer role requirements, including handling `ACTION_DIAL` and implementing the Telecom `InCallService` contract. This UI foundation currently opens the system dialer with `ACTION_DIAL`; it does not claim to replace the system phone app yet.
+The current app can open Android's system dialer using `ACTION_DIAL`; it is not yet a full replacement Phone app. A true default dialer must meet Android's dialer-role requirements and implement the Telecom `InCallService` contract before requesting `RoleManager.ROLE_DIALER`.
 
-Permissions for contacts and call history will be requested only when those live integrations are implemented. Emergency calls and carrier-specific behavior remain under Android/system control.
+The app requests `READ_CONTACTS` only when the user chooses to connect their address book. Contact data is read on-device. Favorites are stored locally. Call-log access is intentionally deferred until the app is eligible for the Phone role and the user-facing permission flow is ready.
+
+Emergency calling and carrier-managed behavior remain under Android and the carrier's control.
