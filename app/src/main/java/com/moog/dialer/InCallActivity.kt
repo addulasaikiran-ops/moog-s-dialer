@@ -34,12 +34,14 @@ import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -184,6 +186,10 @@ class InCallActivity : ComponentActivity() {
                                 }
                                 Spacer(Modifier.height(8.dp))
                                 Text(current.simLabel, color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                if (displayName != current.number && current.number.isNotBlank()) {
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(current.number, color = MoogColors.secondaryLabel, fontSize = 14.sp)
+                                }
                                 if (current.conferenceChildCount > 0) {
                                     Spacer(Modifier.height(8.dp))
                                     Text("Conference · ${current.conferenceChildCount} participants", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
@@ -191,14 +197,29 @@ class InCallActivity : ComponentActivity() {
                             }
 
                             if (incoming) {
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                                    RoundCallButton("Block & decline", MoogColors.red, Icons.Default.CallEnd) {
-                                        SpamBlockRepository.block(this@InCallActivity, current.number)
-                                        CallSession.reject(current.call)
-                                        finish()
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceEvenly,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        RoundCallButton("Decline", MoogColors.red, Icons.Default.CallEnd) {
+                                            CallSession.reject(current.call)
+                                            finish()
+                                        }
+                                        RoundCallButton("Answer", MoogColors.green, Icons.Default.Call) {
+                                            CallSession.answer(current.call)
+                                        }
                                     }
-                                    RoundCallButton("Answer", MoogColors.green, Icons.Default.Call) {
-                                        CallSession.answer(current.call)
+                                    Spacer(Modifier.height(12.dp))
+                                    TextButton(
+                                        onClick = {
+                                            SpamBlockRepository.block(this@InCallActivity, current.number)
+                                            CallSession.reject(current.call)
+                                            finish()
+                                        }
+                                    ) {
+                                        Text("Block caller and decline", color = MoogColors.red, fontSize = 13.sp)
                                     }
                                 }
                             } else {

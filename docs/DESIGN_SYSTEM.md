@@ -22,14 +22,14 @@ This phase has not been built, linted, unit-tested, or device-tested. Those chec
 ## Phase 2 — App shell foundation
 
 - Extracted the Android entry point and outgoing-call handoff into the thin `MainActivity.kt`.
-- Moved the main Compose app shell and current tab/screen composables into `ui/screens/DialerScreens.kt`.
+- Moved the main Compose app shell into `ui/screens/DialerScreens.kt` and extracted Keypad, Contacts, Favorites, Contact Detail, Recents, and Settings into separate `ui/screens/*Screen.kt` files.
 - Replaced the repeated MOOG brand header and custom bottom row with the shared five-item `MoogTabBar`.
 - Corrected the Keypad tab icon to a dialpad grid icon.
 - Kept Settings as the fifth tab so every existing feature remains reachable without a disruptive navigation change.
 - Added system Back handling for the in-app contact profile; standalone Spam Protection and carrier voicemail screens continue to use Android Activity back navigation.
 - The tab bar now applies navigation-bar insets.
 
-This is the first navigation extraction. Further per-screen file separation, Settings sub-pages, and full navigation-stack consolidation remain subsequent work.
+This is the first navigation extraction. Settings sub-pages and full navigation-stack consolidation remain subsequent work.
 
 ## Phase 3 — Screen redesign progress
 
@@ -41,3 +41,12 @@ This is the first navigation extraction. Further per-screen file separation, Set
 - In-call: uses the dark palette, resolves a contact name only when contact permission is already granted, shows the Telecom connection timer, and groups controls into consistent three-column rows.
 
 This screen work is still in progress. Call-detail navigation, full Settings sub-pages, swipe actions, the complete in-call redesign, and accessibility review remain subsequent work.
+
+## Phase 4 — Settings and call-detail completion
+
+- Rebuilt Settings as a grouped, large-title page with Appearance, Calling, Incoming Calls, Calling Features, and About sections.
+- Replaced the SIM dropdown with a bottom-sheet account picker, including the Android system-default option and selected-state feedback.
+- Made default Phone role, SIM permission, notification permission, and full-screen intent actions explicit and actionable.
+- Connected Recents row selection to the existing Call Detail screen. The detail page exposes call type, relative date, duration, SIM label, callback, message, and local block/unblock actions.
+- Incoming-call UI now presents Answer and Decline as the primary actions; Block caller and decline is a secondary action. Resolved contact names also retain the phone number as supporting context.
+

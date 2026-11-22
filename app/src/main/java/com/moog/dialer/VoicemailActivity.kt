@@ -49,6 +49,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.moog.dialer.ui.theme.MoogColors
 import com.moog.dialer.ui.theme.MoogTheme
+import com.moog.dialer.ui.components.MoogLargeTitleScaffold
 
 
 class VoicemailActivity : ComponentActivity() {
@@ -68,7 +69,7 @@ private fun VoicemailScreen(onBack: () -> Unit) {
     var hasPermission by remember { mutableStateOf(VoicemailRepository.hasVoicemailPermission(context)) }
     var loadResult by remember { mutableStateOf<VoicemailLoadResult?>(null) }
     var refreshKey by remember { mutableIntStateOf(0) }
-    var isDefaultDialer by remember { mutableStateOf(isMoogDefaultDialer(context)) }
+    var isDefaultDialer by remember { mutableStateOf(isMoogDefaultPhoneApp(context)) }
     var phoneAccounts by remember { mutableStateOf<List<PhoneAccountOption>>(emptyList()) }
     var hasNotificationPermission by remember { mutableStateOf(android.os.Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) }
     var phoneNumberPermission by remember {
@@ -106,27 +107,35 @@ private fun VoicemailScreen(onBack: () -> Unit) {
     val messages = (loadResult as? VoicemailLoadResult.Available)?.messages.orEmpty()
     val unreadCount = messages.count { !it.isRead }
 
-    Column(Modifier.fillMaxSize().background(MoogColors.background)) {
-        Row(
-            Modifier.fillMaxWidth().background(MoogColors.surface).statusBarsPadding().padding(horizontal = 18.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MoogColors.label) }
-            Column(Modifier.weight(1f)) {
-                Text("Voicemail", color = MoogColors.label, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text(if (unreadCount == 0) "Your voicemail inbox" else unreadCount.toString() + " unread messages", color = MoogColors.secondaryLabel, fontSize = 11.sp)
+    MoogLargeTitleScaffold(
+        title = "Voicemail",
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MoogColors.blue)
             }
+        },
+        actions = {
             IconButton(onClick = {
                 VoicemailRepository.requestSync(context)
                 refreshKey++
-            }) { Icon(Icons.Default.Refresh, contentDescription = "Refresh voicemail", tint = MoogColors.blue) }
+            }) {
+                Icon(Icons.Default.Refresh, contentDescription = "Refresh voicemail", tint = MoogColors.blue)
+            }
         }
-
+    ) { scaffoldPadding ->
         LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 28.dp),
+            Modifier.fillMaxSize().padding(scaffoldPadding),
+            contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 8.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            item {
+                Text(
+                    if (unreadCount == 0) "Your voicemail inbox" else "$unreadCount unread messages",
+                    color = MoogColors.secondaryLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                )
+            }
             item {
                 Column(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MoogColors.surface).padding(16.dp),
@@ -420,18 +429,10 @@ private fun formatDuration(seconds: Long): String {
     return "%d:%02d".format(safe / 60, safe % 60)
 }
 
-private fun isMoogDefaultDialer(context: Context): Boolean = runCatching {
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-        context.getSystemService(android.app.role.RoleManager::class.java)?.isRoleHeld(android.app.role.RoleManager.ROLE_DIALER) == true
-    } else {
-        context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage == context.packageName
-    }
-}.getOrDefault(false)
-
 private fun openVoicemailCall(context: Context, number: String, account: PhoneAccountOption?) {
     if (number.isBlank()) return
     val uri = Uri.fromParts("tel", number.trim(), null)
-    if (isMoogDefaultDialer(context) && account != null) {
+    if (isMoogDefaultPhoneApp(context) && account != null) {
         runCatching {
             val extras = Bundle().apply { putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, account.handle) }
             context.getSystemService(TelecomManager::class.java).placeCall(uri, extras)
