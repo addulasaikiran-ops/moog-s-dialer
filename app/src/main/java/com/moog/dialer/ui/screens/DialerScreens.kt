@@ -1233,7 +1233,7 @@ private fun ContactRow(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(MoogColors.surface).clickable(onClick = onOpenContact).padding(horizontal = 11.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Avatar(contact.displayName)
+        Avatar(contact.displayName, contact.photoUri)
         Spacer(Modifier.width(11.dp))
         Column(Modifier.weight(1f)) {
             Text(contact.displayName, color = MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
