@@ -36,6 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -292,10 +294,18 @@ private fun VoicemailMessageCard(
                 Text(message.number.ifBlank { "Unknown caller" }, color = MoogColors.label, fontSize = 14.sp, fontWeight = if (message.isRead) FontWeight.Medium else FontWeight.Bold)
                 Text(time + " · " + formatDuration(message.durationSeconds) + " · " + message.accountLabel, color = MoogColors.secondaryLabel, fontSize = 10.sp)
             }
-            if (!message.isRead) Box(Modifier.size(7.dp).clip(CircleShape).background(MoogColors.blue))
+            if (!message.isRead) Box(
+                Modifier.size(7.dp).clip(CircleShape).background(MoogColors.blue)
+                    .semantics { contentDescription = "Unread voicemail" }
+            )
         }
         if (active) {
-            Slider(value = player.progress, onValueChange = { player.seekTo(it) }, valueRange = 0f..1f)
+            Slider(
+                value = player.progress,
+                onValueChange = { player.seekTo(it) },
+                valueRange = 0f..1f,
+                modifier = Modifier.semantics { contentDescription = "Voicemail playback position" }
+            )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(formatDuration(player.positionMs / 1000), color = MoogColors.secondaryLabel, fontSize = 10.sp)
                 Spacer(Modifier.weight(1f))
@@ -360,6 +370,13 @@ private class VoicemailPlaybackController(private val context: Context) {
                 isPlaying = false
                 handler.removeCallbacks(progressTask)
             } else {
+                // A completed recording remains selected. Restart it from the
+                // beginning when the user presses Play again.
+                if (durationMs > 0L && positionMs >= durationMs) {
+                    current.seekTo(0)
+                    positionMs = 0L
+                    progress = 0f
+                }
                 current.start()
                 isPlaying = true
                 handler.post(progressTask)
