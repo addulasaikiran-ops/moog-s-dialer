@@ -183,8 +183,7 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
 
     LaunchedEffect(selectedTab) {
         if (selectedTab == Tab.Recents) {
-            isDefaultDialer = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-                context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_DIALER) == true
+            isDefaultDialer = isMoogDefaultPhoneApp(context)
         }
     }
 
