@@ -1,5 +1,6 @@
 package com.moog.dialer.ui.screens
 
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -188,7 +189,7 @@ internal fun KeypadScreen(
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         if (number.isEmpty()) {
                             Text(
-                                "Enter a number",
+                                stringResource(R.string.enter_a_number),
                                 color = MoogColors.secondaryLabel,
                                 fontSize = 22.sp
                             )
@@ -210,7 +211,7 @@ internal fun KeypadScreen(
                 },
                 modifier = Modifier.heightIn(min = 44.dp)
             ) {
-                Text("Add Number", color = MoogColors.blue, style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.add_number), color = MoogColors.blue, style = MaterialTheme.typography.bodyMedium)
             }
         } else {
             Spacer(Modifier.height(44.dp))
@@ -284,7 +285,7 @@ internal fun KeypadScreen(
             ) {
                 Icon(
                     Icons.Default.Call,
-                    contentDescription = "Call entered number",
+                    contentDescription = stringResource(R.string.call_entered_number),
                     tint = Color.White,
                     modifier = Modifier.size(30.dp)
                 )
@@ -296,7 +297,7 @@ internal fun KeypadScreen(
                 ) {
                     Icon(
                         Icons.Default.Backspace,
-                        contentDescription = "Delete last digit",
+                        contentDescription = stringResource(R.string.delete_last_digit),
                         tint = MoogColors.secondaryLabel
                     )
                 }
