@@ -98,11 +98,9 @@ class InCallActivity : ComponentActivity() {
                         }
                         val speakerAvailable = audio.availableRoutes and CallAudioState.ROUTE_SPEAKER != 0
                         val canSendDtmf = current.state == Call.STATE_ACTIVE || current.state == Call.STATE_HOLDING
-                        LaunchedEffect(current.call, canSendDtmf) {
-                            if (!canSendDtmf) {
-                                showDtmf = false
-                                CallSession.stopDtmfTone()
-                            }
+                        LaunchedEffect(current.call, current.state) {
+                            showDtmf = false
+                            CallSession.stopDtmfTone()
                         }
                         Column(
                             Modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 34.dp),
