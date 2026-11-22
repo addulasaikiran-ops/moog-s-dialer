@@ -47,18 +47,15 @@ import com.moog.dialer.data.VoicemailMessage
 import com.moog.dialer.data.VoicemailRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.moog.dialer.ui.theme.MoogColors
+import com.moog.dialer.ui.theme.MoogTheme
 
-private val VmPage = Color(0xFFF5F6F8)
-private val VmCard = Color.White
-private val VmInk = Color(0xFF17191D)
-private val VmMuted = Color(0xFF858B96)
-private val VmBlue = Color(0xFF087CFA)
 
 class VoicemailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = lightColorScheme(primary = VmBlue, background = VmPage, surface = VmCard)) {
+            MoogTheme {
                 VoicemailScreen(onBack = { finish() })
             }
         }
