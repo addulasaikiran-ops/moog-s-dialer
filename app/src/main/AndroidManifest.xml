@@ -13,6 +13,9 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
+            android:name=".SpamProtectionActivity"
+            android:exported="false" />
+        <activity
             android:name=".InCallActivity"
             android:excludeFromRecents="true"
             android:exported="false"

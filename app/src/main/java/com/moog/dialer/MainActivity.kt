@@ -354,6 +354,9 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
                             }
                             fullScreenIntentLauncher.launch(intent)
                         }
+                    },
+                    onOpenSpamProtection = {
+                        context.startActivity(Intent(context, SpamProtectionActivity::class.java))
                     }
                 )
             }
@@ -703,6 +706,7 @@ private fun RecentsScreen(
 ) {
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("All") }
+    var spamRefresh by remember { mutableStateOf(0) }
     val filteredCalls = remember(calls, query, filter) {
         calls.filter { call ->
             val matchesFilter = when (filter) {
@@ -774,8 +778,17 @@ private fun RecentsScreen(
                                 }
                             }
                             items(contactCalls, key = { it.id }) { call ->
+                                val blockedByUser = remember(call.number, spamRefresh) {
+                                    SpamBlockRepository.isBlocked(context, call.number)
+                                }
                                 RecentCallRow(
                                     call = call,
+                                    isBlocked = blockedByUser,
+                                    onToggleBlock = {
+                                        if (blockedByUser) SpamBlockRepository.unblock(context, call.number)
+                                        else SpamBlockRepository.block(context, call.number)
+                                        spamRefresh++
+                                    },
                                     onDial = { onDial(call.number) },
                                     onMessage = {
                                         if (call.number.isNotBlank()) {
@@ -793,7 +806,13 @@ private fun RecentsScreen(
 }
 
 @Composable
-private fun RecentCallRow(call: RecentCall, onDial: () -> Unit, onMessage: () -> Unit) {
+private fun RecentCallRow(
+    call: RecentCall,
+    isBlocked: Boolean,
+    onToggleBlock: () -> Unit,
+    onDial: () -> Unit,
+    onMessage: () -> Unit
+) {
     val callType = when (call.type) {
         CallLog.Calls.INCOMING_TYPE -> "Incoming"
         CallLog.Calls.OUTGOING_TYPE -> "Outgoing"
@@ -826,6 +845,12 @@ private fun RecentCallRow(call: RecentCall, onDial: () -> Unit, onMessage: () ->
             Spacer(Modifier.height(3.dp))
             Text("${callType} · ${relativeTime}", color = callColor, fontSize = 11.sp)
             Text(call.number.ifBlank { "Private number" } + " · " + call.simLabel, color = Secondary, fontSize = 10.sp)
+            if (isBlocked) {
+                Text("On your blocklist · blocked by you", color = Color(0xFFD94B4B), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+        TextButton(onClick = onToggleBlock, enabled = call.number.isNotBlank()) {
+            Text(if (isBlocked) "Unblock" else "Block", fontSize = 10.sp)
         }
         IconButton(onClick = onMessage, enabled = call.number.isNotBlank()) {
             Icon(Icons.Default.Sms, contentDescription = "Message ${call.number}", tint = Blue, modifier = Modifier.size(18.dp))
@@ -888,7 +913,8 @@ private fun SettingsScreen(
     onRequestPhoneState: () -> Unit,
     onRequestPhoneRole: () -> Unit,
     onRequestNotifications: () -> Unit,
-    onRequestFullScreenIntent: () -> Unit
+    onRequestFullScreenIntent: () -> Unit,
+    onOpenSpamProtection: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         ScreenTitle("Settings", "Make calling feel like yours")
@@ -930,6 +956,22 @@ private fun SettingsScreen(
             Text("Set MOOG'S DIALER as the default Phone app for this SIM preference to control outgoing calls. Otherwise Android opens the system dialer.", color = Secondary, fontSize = 11.sp, lineHeight = 16.sp)
         }
         Spacer(Modifier.height(14.dp))
+        Card(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenSpamProtection),
+            colors = CardDefaults.cardColors(containerColor = Card)
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(15.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Spam protection", color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Manage your local blocklist and blocked callers", color = Secondary, fontSize = 12.sp)
+                }
+                Text("Manage  ›", color = Blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+        Spacer(Modifier.height(6.dp))
         SettingsRow("Appearance", "iPhone-inspired light interface")
         SettingsRow("Contacts", "On-device contact access")
         SettingsRow("Calling", "Telecom calling with system dialer fallback")
