@@ -64,9 +64,18 @@ class InCallActivity : ComponentActivity() {
                 var showDtmf by remember { mutableStateOf(false) }
                 val calls by CallSession.calls.collectAsState()
                 val audio by CallSession.audio.collectAsState()
-                val current = calls.firstOrNull { it.state == Call.STATE_RINGING }
-                    ?: calls.firstOrNull { it.state == Call.STATE_ACTIVE || it.state == Call.STATE_DIALING || it.state == Call.STATE_CONNECTING }
-                    ?: calls.firstOrNull()
+                // Keep the established foreground call on screen when a second call rings.
+                val current = calls.firstOrNull { it.state == Call.STATE_ACTIVE }
+                    ?: calls.firstOrNull { it.state == Call.STATE_DIALING || it.state == Call.STATE_CONNECTING }
+                    ?: calls.firstOrNull { it.state == Call.STATE_HOLDING }
+                    ?: calls.firstOrNull { it.state == Call.STATE_RINGING }
+                val waitingCall = calls.firstOrNull { it.state == Call.STATE_RINGING && it.call !== current?.call }
+                val heldCall = calls.firstOrNull { it.state == Call.STATE_HOLDING && it.call !== current?.call }
+                val conferenceTarget = current?.conferenceableCalls?.firstOrNull { candidate ->
+                    calls.any { it.call === candidate }
+                } ?: calls.firstOrNull { entry ->
+                    entry.call !== current?.call && current != null && current.call in entry.conferenceableCalls
+                }
 
                 LaunchedEffect(calls.isEmpty()) {
                     if (calls.isEmpty()) finish()
@@ -89,11 +98,9 @@ class InCallActivity : ComponentActivity() {
                         }
                         val speakerAvailable = audio.availableRoutes and CallAudioState.ROUTE_SPEAKER != 0
                         val canSendDtmf = current.state == Call.STATE_ACTIVE || current.state == Call.STATE_HOLDING
-                        LaunchedEffect(current.call, canSendDtmf) {
-                            if (!canSendDtmf) {
-                                showDtmf = false
-                                CallSession.stopDtmfTone()
-                            }
+                        LaunchedEffect(current.call, current.state) {
+                            showDtmf = false
+                            CallSession.stopDtmfTone()
                         }
                         Column(
                             Modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 34.dp),
@@ -112,6 +119,10 @@ class InCallActivity : ComponentActivity() {
                                 Text(status, color = CallMuted, fontSize = 14.sp)
                                 Spacer(Modifier.height(8.dp))
                                 Text(current.simLabel, color = CallBlue, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                if (current.conferenceChildCount > 0) {
+                                    Spacer(Modifier.height(8.dp))
+                                    Text("Conference · ${current.conferenceChildCount} participants", color = CallBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                }
                             }
 
                             if (incoming) {
@@ -126,6 +137,15 @@ class InCallActivity : ComponentActivity() {
                                 }
                             } else {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    if (waitingCall != null) {
+                                        WaitingCallCard(
+                                            number = waitingCall.number,
+                                            simLabel = waitingCall.simLabel,
+                                            onAnswer = { CallSession.answer(waitingCall.call) },
+                                            onDecline = { CallSession.reject(waitingCall.call) }
+                                        )
+                                        Spacer(Modifier.height(16.dp))
+                                    }
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                                         if (canSendDtmf) {
                                             RoundCallButton(if (showDtmf) "Hide keypad" else "Keypad", Color(0xFFE8EDF5), Icons.Default.Dialpad, CallInk) {
@@ -148,6 +168,21 @@ class InCallActivity : ComponentActivity() {
                                         if (current.canHold) {
                                             RoundCallButton(if (current.state == Call.STATE_HOLDING) "Resume" else "Hold", Color(0xFFE8EDF5), if (current.state == Call.STATE_HOLDING) Icons.Default.PlayArrow else Icons.Default.Pause, CallInk) {
                                                 CallSession.toggleHold(current.call)
+                                            }
+                                        }
+                                    }
+                                    if (heldCall != null || conferenceTarget != null) {
+                                        Spacer(Modifier.height(18.dp))
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                            if (heldCall != null && current.state == Call.STATE_ACTIVE && current.canHold && heldCall.canHold) {
+                                                RoundCallButton("Swap", Color(0xFFE8EDF5), Icons.Default.PlayArrow, CallInk) {
+                                                    CallSession.swapCalls(current.call, heldCall.call)
+                                                }
+                                            }
+                                            if (conferenceTarget != null && current.state == Call.STATE_ACTIVE) {
+                                                RoundCallButton("Merge", Color(0xFFE8EDF5), Icons.Default.Call, CallInk) {
+                                                    CallSession.conference(current.call, conferenceTarget.call)
+                                                }
                                             }
                                         }
                                     }
@@ -220,6 +255,44 @@ private fun DtmfKeypad(onDigit: (Char) -> Unit) {
                     ) {
                         Text(digit.toString(), color = CallInk, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
                     }
+                }
+            }
+        }
+    }
+}
+
+
+@androidx.compose.runtime.Composable
+private fun WaitingCallCard(
+    number: String,
+    simLabel: String,
+    onAnswer: () -> Unit,
+    onDecline: () -> Unit
+) {
+    androidx.compose.material3.Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(14.dp)) {
+            Text("Call waiting", color = CallBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(4.dp))
+            Text(number, color = CallInk, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(simLabel, color = CallMuted, fontSize = 11.sp)
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                androidx.compose.material3.FilledTonalButton(
+                    onClick = onDecline,
+                    modifier = Modifier.weight(1f),
+                    colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(contentColor = Color(0xFFE5484D))
+                ) {
+                    Text("Decline")
+                }
+                androidx.compose.material3.Button(
+                    onClick = onAnswer,
+                    modifier = Modifier.weight(1f),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFF20A464))
+                ) {
+                    Text("Answer")
                 }
             }
         }

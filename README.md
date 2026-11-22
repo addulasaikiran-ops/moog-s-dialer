@@ -65,6 +65,10 @@ Windows PowerShell:
 
 During an active or held call, the in-call screen exposes a keypad toggle with the standard 0–9, `*`, and `#` keys. Each tap asks Android Telecom to play the corresponding DTMF tone and automatically stops it after a short pulse; starting another digit stops the previous pulse first. The keypad is hidden during ringing/dialing/connecting states, and any active tone is stopped when the keypad is hidden or the call is removed. IVR recognition and tone duration can vary by carrier, network, and remote phone system, so this feature still needs real-call verification.
 
+### Advanced call management
+
+The in-call screen keeps the established foreground call visible when a second call rings and shows a separate Call waiting card with Answer and Decline actions. Answering is delegated to Android Telecom and the underlying ConnectionService; whether the existing call is held, and whether call waiting is available at all, depends on device, SIM, carrier provisioning, and current call capabilities. When Telecom reports an active call and a held call, MOOG'S DIALER exposes Swap only when both calls report hold support. A Merge control appears only when one call lists the other as conferenceable; the app then requests the conference through Telecom. Conference participant count is shown when Telecom exposes child calls. Unsupported actions are hidden rather than simulated. These flows still require physical-device and carrier validation.
+
 ### Stabilisation and release readiness
 - [ ] Accessibility pass: TalkBack descriptions and traversal, minimum 48dp touch targets, scalable text, contrast, focus states, and clear permission/error messaging
 - [ ] Automated CI: GitHub Actions workflow for Gradle validation, Android lint, unit tests, and debug APK assembly
@@ -76,7 +80,7 @@ During an active or held call, the in-call screen exposes a keypad toggle with t
 
 ### Planned product upgrades (not implemented yet)
 - [x] In-call DTMF keypad for IVR and automated phone menus
-- [ ] Advanced call management: second incoming call, call waiting, hold/swap, and conference controls where Android Telecom and the carrier support them
+- [x] Advanced call management: second incoming call, call waiting, hold/swap, and conference controls where Android Telecom and the carrier support them
 - [ ] Smart Recents: missed/incoming/outgoing filters, call-history search, contact grouping, and quick callback/message actions
 - [ ] Rich contact profiles: contact-specific call history, quick actions, and improved multi-number handling
 - [ ] User-controlled spam protection: local blocklist, block/unblock controls, and clear suspected-spam indicators; no unsupported claims of live caller identification
@@ -102,7 +106,7 @@ Dual-SIM and carrier behaviour still requires physical-device testing. Use the f
 | Incoming calls | Calls arriving on either line display and answer on the receiving line |
 | Dual-SIM concurrency | DSDS/DSDA behaviour, data/voice concurrency, and one SIM busy while the other receives a call |
 | SIM lifecycle | SIM removed, disabled, replaced, no service, and eSIM plus physical SIM |
-| Carrier services | VoLTE, VoWiFi, call waiting, hold/swap, conference calling, and roaming where provisioned |
+| Carrier services | VoLTE, VoWiFi, call waiting, hold/swap, conference calling, and roaming where provisioned; confirm unsupported controls stay hidden |
 | Audio routes | Earpiece, speaker, Bluetooth connect/disconnect, and wired headset during a call |
 | OEM call experience | Incoming-call notifications, full-screen intent restrictions, lock-screen behaviour, and background restrictions |
 | Permissions/default role | Grant, deny, revoke, and re-grant phone permissions; set and remove the default Phone role |
@@ -126,4 +130,4 @@ Automated checks should run from GitHub Actions on pull requests and pushes to t
 
 ## Current verification status
 
-The SIM preference and per-SIM Recents changes are merged into `main`. The in-call DTMF keypad is implemented on its feature branch and is awaiting review/merge. The stabilisation, accessibility, automated-check, carrier-validation, and device-QA items above are planned work unless explicitly checked off with recorded evidence. No build, automated test suite, or physical-device validation is claimed by this README.
+The SIM preference and per-SIM Recents changes are merged into `main`. The in-call DTMF keypad is merged into `main`. Advanced call-management controls are implemented on their feature branch and are awaiting review/merge. The stabilisation, accessibility, automated-check, carrier-validation, and device-QA items above are planned work unless explicitly checked off with recorded evidence. No build, automated test suite, or physical-device validation is claimed by this README.
