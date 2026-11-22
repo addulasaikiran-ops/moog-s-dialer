@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.stickyHeader
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -101,6 +100,7 @@ import com.moog.dialer.SpamProtectionActivity
 import com.moog.dialer.VoicemailActivity
 import com.moog.dialer.isMoogDefaultPhoneApp
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun KeypadScreen(
     number: String,
@@ -239,7 +239,7 @@ internal fun KeypadScreen(
                                     interactionSource = interactionSource,
                                     indication = null,
                                     onClick = {
-                                        haptics.performHapticFeedback(HapticFeedbackType.KeyboardTap)
+                                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         onNumberChange(number + digit)
                                     },
                                     onLongClick = if (digit == "0") {
