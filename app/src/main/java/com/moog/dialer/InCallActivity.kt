@@ -33,11 +33,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -89,6 +88,13 @@ class InCallActivity : ComponentActivity() {
                             else -> "Call"
                         }
                         val speakerAvailable = audio.availableRoutes and CallAudioState.ROUTE_SPEAKER != 0
+                        val canSendDtmf = current.state == Call.STATE_ACTIVE || current.state == Call.STATE_HOLDING
+                        LaunchedEffect(current.call, canSendDtmf) {
+                            if (!canSendDtmf) {
+                                showDtmf = false
+                                CallSession.stopDtmfTone()
+                            }
+                        }
                         Column(
                             Modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 34.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -121,9 +127,11 @@ class InCallActivity : ComponentActivity() {
                             } else {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                        RoundCallButton(if (showDtmf) "Hide keypad" else "Keypad", Color(0xFFE8EDF5), Icons.Default.Dialpad, CallInk) {
-                                            showDtmf = !showDtmf
-                                            if (!showDtmf) CallSession.stopDtmfTone()
+                                        if (canSendDtmf) {
+                                            RoundCallButton(if (showDtmf) "Hide keypad" else "Keypad", Color(0xFFE8EDF5), Icons.Default.Dialpad, CallInk) {
+                                                showDtmf = !showDtmf
+                                                if (!showDtmf) CallSession.stopDtmfTone()
+                                            }
                                         }
                                         RoundCallButton(if (audio.isMuted) "Unmute" else "Mute", Color(0xFFE8EDF5), if (audio.isMuted) Icons.Default.MicOff else Icons.Default.Mic, CallInk) {
                                             CallSession.toggleMute()
