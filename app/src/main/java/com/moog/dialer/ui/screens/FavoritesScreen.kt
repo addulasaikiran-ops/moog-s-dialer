@@ -138,7 +138,7 @@ internal fun FavoritesScreen(
                             Text(numberLabel, color = MoogColors.secondaryLabel, style = MaterialTheme.typography.bodySmall)
                         }
                         IconButton(onClick = { onOpenContact(contact.id) }) {
-                            Icon(Icons.Default.Info, contentDescription = "Contact information for ${contact.displayName}", tint = MoogColors.blue)
+                            Icon(Icons.Default.Info, contentDescription = stringResource(R.string.contact_information_for, contact.displayName), tint = MoogColors.blue)
                         }
                     }
                 }
