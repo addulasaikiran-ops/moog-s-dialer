@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.telecom.Call
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,6 +58,7 @@ class InCallActivity : ComponentActivity() {
         setContent {
             MaterialTheme(colorScheme = androidx.compose.material3.lightColorScheme(primary = CallBlue)) {
                 val calls by CallSession.calls.collectAsState()
+                val audio by CallSession.audio.collectAsState()
                 val current = calls.firstOrNull { it.state == Call.STATE_RINGING }
                     ?: calls.firstOrNull { it.state == Call.STATE_ACTIVE || it.state == Call.STATE_DIALING || it.state == Call.STATE_CONNECTING }
                     ?: calls.firstOrNull()
@@ -66,7 +66,6 @@ class InCallActivity : ComponentActivity() {
                 LaunchedEffect(calls.isEmpty()) {
                     if (calls.isEmpty()) finish()
                 }
-                BackHandler(enabled = current != null) { /* Keep call controls available; notification can reopen this screen. */ }
 
                 Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF5F6F8)) {
                     if (current == null) {
@@ -113,10 +112,10 @@ class InCallActivity : ComponentActivity() {
                             } else {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                        RoundCallButton(if (CallSession.isMuted) "Unmute" else "Mute", Color(0xFFE8EDF5), if (CallSession.isMuted) Icons.Default.MicOff else Icons.Default.Mic, CallInk) {
+                                        RoundCallButton(if (audio.isMuted) "Unmute" else "Mute", Color(0xFFE8EDF5), if (CallSession.isMuted) Icons.Default.MicOff else Icons.Default.Mic, CallInk) {
                                             CallSession.toggleMute()
                                         }
-                                        RoundCallButton(if (CallSession.isSpeakerOn) "Speaker on" else "Speaker", Color(0xFFE8EDF5), Icons.Default.VolumeUp, CallInk) {
+                                        RoundCallButton(if (audio.isSpeakerOn) "Speaker on" else "Speaker", Color(0xFFE8EDF5), Icons.Default.VolumeUp, CallInk) {
                                             CallSession.toggleSpeaker()
                                         }
                                         if (current.canHold) {
