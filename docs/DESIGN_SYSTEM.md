@@ -30,3 +30,14 @@ This phase has not been built, linted, unit-tested, or device-tested. Those chec
 - The tab bar now applies navigation-bar insets.
 
 This is the first navigation extraction. Further per-screen file separation, Settings sub-pages, and full navigation-stack consolidation remain subsequent work.
+
+## Phase 3 — Screen redesign progress
+
+- Keypad: removed the redundant label; added responsive number sizing, T9 suggestions above the number, system Add Number intent, 78dp tactile keys, pressed-state feedback, haptics, long-press 0 for `+`, and a green call action with adjacent delete.
+- Favorites: rows call on tap and expose a separate contact-information action.
+- Contacts: added alphabetical sticky sections, a right-edge index scrubber with haptic feedback, a contact count, and asynchronous cached thumbnail loading from existing `PhoneContact.photoUri`.
+- Recents: All/Missed segmented filtering, Incoming/Outgoing overflow filters, consecutive-call collapsing in newest-first order, and direction-specific call glyphs. Per-row Block/Unblock buttons were removed; the local blocklist remains manageable in Spam Protection and from the incoming-call action.
+- Settings: added persisted System / Light / Dark appearance selection.
+- In-call: uses the dark palette, resolves a contact name only when contact permission is already granted, shows the Telecom connection timer, and groups controls into consistent three-column rows.
+
+This screen work is still in progress. Call-detail navigation, full Settings sub-pages, swipe actions, the complete in-call redesign, and accessibility review remain subsequent work.
