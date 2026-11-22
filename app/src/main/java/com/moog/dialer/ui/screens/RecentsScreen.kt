@@ -137,7 +137,7 @@ internal fun RecentsScreen(
         val groups = mutableListOf<RecentCallGroup>()
         filteredCalls.forEach { call ->
             val key = call.displayName.trim().takeIf { it.isNotEmpty() }
-                ?: call.number.ifBlank { stringResource(R.string.unknown_number) }
+                ?: call.number.ifBlank { "Unknown number" }
             val previous = groups.lastOrNull()
             if (previous?.key == key) {
                 groups[groups.lastIndex] = previous.copy(calls = previous.calls + call)
@@ -185,11 +185,14 @@ internal fun RecentsScreen(
                             expanded = filterMenuExpanded,
                             onDismissRequest = { filterMenuExpanded = false }
                         ) {
-                            listOf(stringResource(R.string.incoming), stringResource(R.string.outgoing)).forEach { option ->
+                            listOf(
+                                "Incoming" to stringResource(R.string.incoming),
+                                "Outgoing" to stringResource(R.string.outgoing)
+                            ).forEach { (filterKey, optionLabel) ->
                                 DropdownMenuItem(
-                                    text = { Text(option) },
+                                    text = { Text(optionLabel) },
                                     onClick = {
-                                        filter = option
+                                        filter = filterKey
                                         filterMenuExpanded = false
                                     }
                                 )
@@ -208,8 +211,8 @@ internal fun RecentsScreen(
                 if (filteredCalls.isEmpty()) {
                     CenterMessage(
                         if (calls.isEmpty()) stringResource(R.string.no_recent_calls) else stringResource(R.string.no_matching_calls),
-                        if (calls.isEmpty()) "Your incoming, outgoing, and missed calls will appear here."
-                        else "Try another filter, name, or phone number."
+                        if (calls.isEmpty()) stringResource(R.string.recent_calls_empty_hint)
+                        else stringResource(R.string.try_another_filter)
                     )
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(5.dp)) {
