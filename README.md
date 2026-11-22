@@ -73,6 +73,10 @@ The in-call screen keeps the established foreground call visible when a second c
 
 The Recents screen provides All, Missed, Incoming, and Outgoing filters plus local search across the cached contact name and phone number in the device call log. Matching history is grouped under the contact name when Android supplies one, otherwise under the phone number, with newest-first ordering preserved. Tap a row or its phone action to start a callback through the existing dial flow; the message action opens the system SMS composer addressed to that number. Call history remains on-device and is shown only when MOOG'S DIALER is the default Phone app and call-log permission is granted. Search is limited to the most recent records loaded by the call-log repository; it is not a full-device or cloud search.
 
+### Rich contact profiles
+
+Opening a contact shows a dedicated profile with distinct saved phone numbers and their Android-provided type labels. Each number has separate Call and Message actions so users can choose the correct work, mobile, or home line instead of relying on an arbitrary default. The profile also matches the locally available CallLog entries against every saved number for that contact and shows recent incoming, outgoing, missed, or rejected calls with the SIM label where available. Contact history is available only under the existing default Phone app and call-log permission requirements. Phone-number matching normalizes punctuation and compares the final ten digits to accommodate common country-code formatting; this is a convenience match, not a globally unique identity guarantee. Contact and call data remain on-device.
+
 ### Stabilisation and release readiness
 - [ ] Accessibility pass: TalkBack descriptions and traversal, minimum 48dp touch targets, scalable text, contrast, focus states, and clear permission/error messaging
 - [ ] Automated CI: GitHub Actions workflow for Gradle validation, Android lint, unit tests, and debug APK assembly
@@ -86,7 +90,7 @@ The Recents screen provides All, Missed, Incoming, and Outgoing filters plus loc
 - [x] In-call DTMF keypad for IVR and automated phone menus
 - [x] Advanced call management: second incoming call, call waiting, hold/swap, and conference controls where Android Telecom and the carrier support them
 - [x] Smart Recents: missed/incoming/outgoing filters, call-history search, contact grouping, and quick callback/message actions
-- [ ] Rich contact profiles: contact-specific call history, quick actions, and improved multi-number handling
+- [x] Rich contact profiles: contact-specific call history, quick actions, and improved multi-number handling
 - [ ] User-controlled spam protection: local blocklist, block/unblock controls, and clear suspected-spam indicators; no unsupported claims of live caller identification
 - [ ] Optional local call insights and duplicate-contact assistance, with privacy-first on-device processing
 
@@ -134,4 +138,4 @@ Automated checks should run from GitHub Actions on pull requests and pushes to t
 
 ## Current verification status
 
-The SIM preference and per-SIM Recents changes are merged into `main`. The in-call DTMF keypad is merged into `main`. Advanced call-management controls are merged into `main`. Smart Recents is implemented on its feature branch and is awaiting review/merge. The stabilisation, accessibility, automated-check, carrier-validation, and device-QA items above are planned work unless explicitly checked off with recorded evidence. No build, automated test suite, or physical-device validation is claimed by this README.
+The SIM preference and per-SIM Recents changes are merged into `main`. The in-call DTMF keypad is merged into `main`. Advanced call-management controls are merged into `main`. Smart Recents is merged into `main`. Rich contact profiles are implemented on their feature branch and are awaiting review/merge. The stabilisation, accessibility, automated-check, carrier-validation, and device-QA items above are planned work unless explicitly checked off with recorded evidence. No build, automated test suite, or physical-device validation is claimed by this README.
