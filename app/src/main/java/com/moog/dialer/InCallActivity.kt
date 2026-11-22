@@ -16,10 +16,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CallEnd
+import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Pause
@@ -32,6 +34,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -56,6 +61,7 @@ class InCallActivity : ComponentActivity() {
         }
         setContent {
             MaterialTheme(colorScheme = androidx.compose.material3.lightColorScheme(primary = CallBlue)) {
+                var showDtmf by remember { mutableStateOf(false) }
                 val calls by CallSession.calls.collectAsState()
                 val audio by CallSession.audio.collectAsState()
                 val current = calls.firstOrNull { it.state == Call.STATE_RINGING }
@@ -82,6 +88,13 @@ class InCallActivity : ComponentActivity() {
                             else -> "Call"
                         }
                         val speakerAvailable = audio.availableRoutes and CallAudioState.ROUTE_SPEAKER != 0
+                        val canSendDtmf = current.state == Call.STATE_ACTIVE || current.state == Call.STATE_HOLDING
+                        LaunchedEffect(current.call, canSendDtmf) {
+                            if (!canSendDtmf) {
+                                showDtmf = false
+                                CallSession.stopDtmfTone()
+                            }
+                        }
                         Column(
                             Modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 34.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -114,6 +127,12 @@ class InCallActivity : ComponentActivity() {
                             } else {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                        if (canSendDtmf) {
+                                            RoundCallButton(if (showDtmf) "Hide keypad" else "Keypad", Color(0xFFE8EDF5), Icons.Default.Dialpad, CallInk) {
+                                                showDtmf = !showDtmf
+                                                if (!showDtmf) CallSession.stopDtmfTone()
+                                            }
+                                        }
                                         RoundCallButton(if (audio.isMuted) "Unmute" else "Mute", Color(0xFFE8EDF5), if (audio.isMuted) Icons.Default.MicOff else Icons.Default.Mic, CallInk) {
                                             CallSession.toggleMute()
                                         }
@@ -131,6 +150,10 @@ class InCallActivity : ComponentActivity() {
                                                 CallSession.toggleHold(current.call)
                                             }
                                         }
+                                    }
+                                    if (showDtmf) {
+                                        Spacer(Modifier.height(24.dp))
+                                        DtmfKeypad(onDigit = { digit -> CallSession.sendDtmfTone(current.call, digit) })
                                     }
                                     Spacer(Modifier.height(38.dp))
                                     RoundCallButton("End call", Color(0xFFE5484D), Icons.Default.CallEnd) {
@@ -168,5 +191,37 @@ private fun RoundCallButton(
         }
         Spacer(Modifier.height(8.dp))
         Text(label, color = if (enabled) CallMuted else CallMuted.copy(alpha = 0.45f), fontSize = 11.sp)
+    }
+}
+
+
+@androidx.compose.runtime.Composable
+private fun DtmfKeypad(onDigit: (Char) -> Unit) {
+    val rows = listOf(
+        listOf('1', '2', '3'),
+        listOf('4', '5', '6'),
+        listOf('7', '8', '9'),
+        listOf('*', '0', '#')
+    )
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        rows.forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                row.forEach { digit ->
+                    androidx.compose.material3.FilledTonalButton(
+                        onClick = { onDigit(digit) },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+                    ) {
+                        Text(digit.toString(), color = CallInk, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
     }
 }

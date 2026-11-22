@@ -3,6 +3,8 @@ package com.moog.dialer.telecom
 import android.telecom.Call
 import android.telecom.CallAudioState
 import android.telecom.PhoneAccountHandle
+import android.os.Handler
+import android.os.Looper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +34,9 @@ object CallSession {
     @Volatile private var service: MoogInCallService? = null
     @Volatile private var currentAudioRoute: Int = CallAudioState.ROUTE_EARPIECE
     @Volatile private var availableAudioRoutes: Int = CallAudioState.ROUTE_EARPIECE
+    private val dtmfHandler = Handler(Looper.getMainLooper())
+    @Volatile private var dtmfCall: Call? = null
+    private var pendingDtmfStop: Runnable? = null
     @Volatile var isMuted: Boolean = false
         private set
     @Volatile var isSpeakerOn: Boolean = false
@@ -85,6 +90,7 @@ object CallSession {
 
     @Synchronized
     fun detach(call: Call) {
+        if (dtmfCall === call) stopDtmfTone()
         callbacks.remove(call)?.let { call.unregisterCallback(it) }
         entries.remove(call)
         publish()
@@ -127,6 +133,32 @@ object CallSession {
 
     fun toggleHold(call: Call) {
         if (call.state == Call.STATE_HOLDING) call.unhold() else call.hold()
+    }
+
+    /** Sends a short DTMF pulse for IVR menus, then releases the tone. */
+    @Synchronized
+    fun sendDtmfTone(call: Call, digit: Char) {
+        if (digit !in "0123456789*#ABCD") return
+        stopDtmfTone()
+        dtmfCall = call
+        call.playDtmfTone(digit)
+        val stop = Runnable {
+            if (dtmfCall === call) {
+                call.stopDtmfTone()
+                dtmfCall = null
+                pendingDtmfStop = null
+            }
+        }
+        pendingDtmfStop = stop
+        dtmfHandler.postDelayed(stop, DTMF_TONE_DURATION_MS)
+    }
+
+    @Synchronized
+    fun stopDtmfTone() {
+        pendingDtmfStop?.let(dtmfHandler::removeCallbacks)
+        pendingDtmfStop = null
+        dtmfCall?.let { call -> runCatching { call.stopDtmfTone() } }
+        dtmfCall = null
     }
 
     fun toggleMute() {
