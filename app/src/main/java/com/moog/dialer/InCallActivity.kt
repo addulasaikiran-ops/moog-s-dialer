@@ -26,7 +26,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -152,7 +152,7 @@ private fun RoundCallButton(
             onClick = onClick,
             modifier = Modifier.size(66.dp),
             shape = CircleShape,
-            colors = ButtonDefaults.filledIconButtonColors(containerColor = background, contentColor = tint)
+            colors = IconButtonDefaults.filledIconButtonColors(containerColor = background, contentColor = tint)
         ) {
             androidx.compose.material3.Icon(icon, contentDescription = label, modifier = Modifier.size(25.dp))
         }
