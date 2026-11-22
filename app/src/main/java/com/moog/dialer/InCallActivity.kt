@@ -74,7 +74,7 @@ class InCallActivity : ComponentActivity() {
                 val conferenceTarget = current?.conferenceableCalls?.firstOrNull { candidate ->
                     calls.any { it.call === candidate }
                 } ?: calls.firstOrNull { entry ->
-                    entry.call !== current?.call && current?.call in entry.conferenceableCalls
+                    entry.call !== current?.call && current != null && current.call in entry.conferenceableCalls
                 }
 
                 LaunchedEffect(calls.isEmpty()) {
