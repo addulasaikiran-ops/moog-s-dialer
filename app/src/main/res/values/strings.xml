@@ -230,4 +230,5 @@
     <string name="back_to_title">‹ %1$s</string>
     <string name="blocklist_empty_title">Your blocklist is empty</string>
     <string name="blocklist_empty_message">Numbers you add here will be rejected when MOOG&apos;S DIALER handles incoming calls.</string>
+    <string name="cancel">Cancel</string>
 </resources>
