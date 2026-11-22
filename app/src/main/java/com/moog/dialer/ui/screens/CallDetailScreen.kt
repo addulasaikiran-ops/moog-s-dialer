@@ -46,15 +46,15 @@ internal fun CallDetailScreen(
     var isBlocked by remember(call.number) {
         mutableStateOf(SpamBlockRepository.isBlocked(context, call.number))
     }
-    val name = call.displayName.ifBlank { call.number.ifBlank { "Unknown caller" } }
+    val name = call.displayName.ifBlank { call.number.ifBlank { stringResource(R.string.unknown_caller) } }
     val callType = when (call.type) {
-        android.provider.CallLog.Calls.INCOMING_TYPE -> "Incoming"
-        android.provider.CallLog.Calls.OUTGOING_TYPE -> "Outgoing"
-        android.provider.CallLog.Calls.MISSED_TYPE -> "Missed"
-        android.provider.CallLog.Calls.REJECTED_TYPE -> "Rejected"
-        android.provider.CallLog.Calls.BLOCKED_TYPE -> "Blocked"
-        android.provider.CallLog.Calls.VOICEMAIL_TYPE -> "Voicemail"
-        else -> "Call"
+        android.provider.CallLog.Calls.INCOMING_TYPE -> stringResource(R.string.incoming)
+        android.provider.CallLog.Calls.OUTGOING_TYPE -> stringResource(R.string.outgoing)
+        android.provider.CallLog.Calls.MISSED_TYPE -> stringResource(R.string.missed)
+        android.provider.CallLog.Calls.REJECTED_TYPE -> stringResource(R.string.rejected)
+        android.provider.CallLog.Calls.BLOCKED_TYPE -> stringResource(R.string.blocked)
+        android.provider.CallLog.Calls.VOICEMAIL_TYPE -> stringResource(R.string.voicemail)
+        else -> stringResource(R.string.call)
     }
     val whenLabel = DateUtils.getRelativeTimeSpanString(
         call.date,
@@ -87,12 +87,12 @@ internal fun CallDetailScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
                     MoogCircleButton(
                         icon = Icons.Default.Sms,
-                        contentDescription = "Message $name",
+                        contentDescription = stringResource(R.string.message_person, name),
                         onClick = { if (call.number.isNotBlank()) onMessage(call.number) }
                     )
                     MoogCircleButton(
                         icon = Icons.Default.Call,
-                        contentDescription = "Call $name",
+                        contentDescription = stringResource(R.string.call_person, name),
                         background = MoogColors.green,
                         tint = androidx.compose.ui.graphics.Color.White,
                         onClick = { if (call.number.isNotBlank()) onDial(call.number) }
@@ -112,7 +112,7 @@ internal fun CallDetailScreen(
                 footer = stringResource(R.string.blocking_stored_locally)
             ) {
                 MoogListRow(
-                    title = if (isBlocked) "Unblock this number" else "Block this number",
+                    title = if (isBlocked) stringResource(R.string.unblock_this_number) else stringResource(R.string.block_this_number),
                     subtitle = call.number,
                     destructive = !isBlocked,
                     onClick = {
