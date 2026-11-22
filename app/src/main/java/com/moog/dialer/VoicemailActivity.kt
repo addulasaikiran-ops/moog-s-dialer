@@ -295,7 +295,7 @@ private fun VoicemailMessageCard(
                 Spacer(Modifier.weight(1f))
                 listOf(1f, 1.5f, 2f).forEach { speed ->
                     TextButton(onClick = { player.setSpeed(speed) }, contentPadding = PaddingValues(horizontal = 5.dp)) {
-                        Text(speed.toString() + "x", color = if (player.speed == speed) VmBlue else VmMuted, fontSize = 10.sp)
+                        Text(speed.toString() + "x", color = if (player.playbackSpeed == speed) VmBlue else VmMuted, fontSize = 10.sp)
                     }
                 }
                 Text(formatDuration(player.durationMs / 1000), color = VmMuted, fontSize = 10.sp)
@@ -327,7 +327,7 @@ private class VoicemailPlaybackController(private val context: Context) {
         private set
     var durationMs by mutableLongStateOf(0L)
         private set
-    var speed by mutableFloatStateOf(1f)
+    var playbackSpeed by mutableFloatStateOf(1f)
         private set
 
     private var mediaPlayer: MediaPlayer? = null
@@ -394,7 +394,7 @@ private class VoicemailPlaybackController(private val context: Context) {
     }
 
     fun setSpeed(value: Float) {
-        speed = value
+        playbackSpeed = value
         runCatching {
             val params = mediaPlayer?.playbackParams ?: return
             mediaPlayer?.playbackParams = params.setSpeed(value)
@@ -412,7 +412,7 @@ private class VoicemailPlaybackController(private val context: Context) {
         progress = 0f
         positionMs = 0L
         durationMs = 0L
-        speed = 1f
+        playbackSpeed = 1f
     }
 
     fun release() = stop()
