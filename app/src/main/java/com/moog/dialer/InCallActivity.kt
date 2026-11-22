@@ -193,7 +193,7 @@ class InCallActivity : ComponentActivity() {
                                 }
                                 if (current.conferenceChildCount > 0) {
                                     Spacer(Modifier.height(8.dp))
-                                    Text("Conference · ${current.conferenceChildCount} participants", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text(stringResource(R.string.conference_participants_count, current.conferenceChildCount), color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
 
@@ -204,11 +204,11 @@ class InCallActivity : ComponentActivity() {
                                         horizontalArrangement = Arrangement.SpaceEvenly,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        RoundCallButton("Decline", MoogColors.red, Icons.Default.CallEnd) {
+                                        RoundCallButton(stringResource(R.string.decline), MoogColors.red, Icons.Default.CallEnd) {
                                             CallSession.reject(current.call)
                                             finish()
                                         }
-                                        RoundCallButton("Answer", MoogColors.green, Icons.Default.Call) {
+                                        RoundCallButton(stringResource(R.string.answer), MoogColors.green, Icons.Default.Call) {
                                             CallSession.answer(current.call)
                                         }
                                     }
@@ -235,11 +235,11 @@ class InCallActivity : ComponentActivity() {
                                         Spacer(Modifier.height(16.dp))
                                     }
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                        RoundCallButton(if (audio.isMuted) "Unmute" else "Mute", MoogColors.fill, if (audio.isMuted) Icons.Default.MicOff else Icons.Default.Mic, MoogColors.label) {
+                                        RoundCallButton(if (audio.isMuted) stringResource(R.string.unmute) else stringResource(R.string.mute), MoogColors.fill, if (audio.isMuted) Icons.Default.MicOff else Icons.Default.Mic, MoogColors.label) {
                                             CallSession.toggleMute()
                                         }
                                         if (canSendDtmf) {
-                                            RoundCallButton(if (showDtmf) "Hide keypad" else "Keypad", MoogColors.fill, Icons.Default.Dialpad, MoogColors.label) {
+                                            RoundCallButton(if (showDtmf) stringResource(R.string.hide_keypad) else stringResource(R.string.keypad), MoogColors.fill, Icons.Default.Dialpad, MoogColors.label) {
                                                 showDtmf = !showDtmf
                                                 if (!showDtmf) CallSession.stopDtmfTone()
                                             }
@@ -260,17 +260,17 @@ class InCallActivity : ComponentActivity() {
                                         Spacer(Modifier.height(18.dp))
                                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                                             if (current.canHold) {
-                                                RoundCallButton(if (current.state == Call.STATE_HOLDING) "Resume" else "Hold", MoogColors.fill, if (current.state == Call.STATE_HOLDING) Icons.Default.PlayArrow else Icons.Default.Pause, MoogColors.label) {
+                                                RoundCallButton(if (current.state == Call.STATE_HOLDING) stringResource(R.string.resume) else stringResource(R.string.hold), MoogColors.fill, if (current.state == Call.STATE_HOLDING) Icons.Default.PlayArrow else Icons.Default.Pause, MoogColors.label) {
                                                     CallSession.toggleHold(current.call)
                                                 }
                                             }
                                             if (canSwap && heldCall != null) {
-                                                RoundCallButton("Swap", MoogColors.fill, Icons.Default.PlayArrow, MoogColors.label) {
+                                                RoundCallButton(stringResource(R.string.swap), MoogColors.fill, Icons.Default.PlayArrow, MoogColors.label) {
                                                     CallSession.swapCalls(current.call, heldCall.call)
                                                 }
                                             }
                                             if (canMerge && conferenceTarget != null) {
-                                                RoundCallButton("Merge", MoogColors.fill, Icons.Default.Call, MoogColors.label) {
+                                                RoundCallButton(stringResource(R.string.merge), MoogColors.fill, Icons.Default.Call, MoogColors.label) {
                                                     CallSession.conference(current.call, conferenceTarget.call)
                                                 }
                                             }
@@ -281,7 +281,7 @@ class InCallActivity : ComponentActivity() {
                                         DtmfKeypad(onDigit = { digit -> CallSession.sendDtmfTone(current.call, digit) })
                                     }
                                     Spacer(Modifier.height(38.dp))
-                                    RoundCallButton("End call", MoogColors.red, Icons.Default.CallEnd) {
+                                    RoundCallButton(stringResource(R.string.end_call), MoogColors.red, Icons.Default.CallEnd) {
                                         CallSession.disconnect(current.call)
                                         finish()
                                     }
