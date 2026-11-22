@@ -14,6 +14,7 @@ import android.text.format.DateUtils
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,6 +35,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Contacts
+import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Person
@@ -65,6 +67,8 @@ import com.moog.dialer.data.PhoneAccountOption
 import com.moog.dialer.data.PhoneAccountRepository
 import com.moog.dialer.ui.theme.MoogColors
 import com.moog.dialer.ui.theme.MoogTheme
+import com.moog.dialer.ui.components.MoogTabBar
+import com.moog.dialer.ui.components.MoogTabItem
 
 private fun isMoogDefaultPhoneApp(context: Context): Boolean {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -121,6 +125,7 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
     var search by remember { mutableStateOf("") }
     var selectedContactId by remember { mutableStateOf<Long?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
+    BackHandler(enabled = selectedContactId != null) { selectedContactId = null }
     var hasContactsPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(
             context,
@@ -235,12 +240,6 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
     }
 
     Column(Modifier.fillMaxSize().background(MoogColors.background)) {
-        if (selectedContactId == null) {
-            AppHeader(
-                onSearch = { selectedTab = Tab.Contacts },
-                onSettings = { selectedTab = Tab.Settings }
-            )
-        }
         AnimatedContent(
             targetState = selectedTab,
             modifier = Modifier.weight(1f),
@@ -358,30 +357,6 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
             })
         }
     }
-}
-
-@Composable
-private fun AppHeader(onSearch: () -> Unit, onSettings: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().statusBarsPadding().background(MoogColors.surface).padding(horizontal = 22.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text("moog's dialer", color = MoogColors.label, fontSize = 23.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.7).sp)
-            Text("A BETTER WAY TO CONNECT", color = MoogColors.secondaryLabel, fontSize = 9.sp, letterSpacing = 1.4.sp, fontWeight = FontWeight.Medium)
-        }
-        HeaderButton(Icons.Default.Search, "Search", onSearch)
-        Spacer(Modifier.width(8.dp))
-        HeaderButton(Icons.Default.Settings, "Settings", onSettings)
-    }
-}
-
-@Composable
-private fun HeaderButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
-    Box(
-        Modifier.size(40.dp).clip(CircleShape).background(MoogColors.background).clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) { Icon(icon, contentDescription = label, tint = MoogColors.label, modifier = Modifier.size(19.dp)) }
 }
 
 @Composable
@@ -1100,28 +1075,16 @@ private fun SettingsRow(title: String, detail: String) {
 
 @Composable
 private fun BottomTabs(selected: Tab, onSelect: (Tab) -> Unit) {
-    val tabItems = listOf(
-        Tab.Favorites to Icons.Default.Favorite,
-        Tab.Recents to Icons.Default.History,
-        Tab.Contacts to Icons.Default.Person,
-        Tab.Keypad to Icons.Default.Contacts,
-        Tab.Settings to Icons.Default.Settings
+    val items = listOf(
+        MoogTabItem(Tab.Favorites.name, Tab.Favorites.label, Icons.Default.Favorite),
+        MoogTabItem(Tab.Recents.name, Tab.Recents.label, Icons.Default.History),
+        MoogTabItem(Tab.Contacts.name, Tab.Contacts.label, Icons.Default.Person),
+        MoogTabItem(Tab.Keypad.name, Tab.Keypad.label, Icons.Default.Dialpad),
+        MoogTabItem(Tab.Settings.name, Tab.Settings.label, Icons.Default.Settings)
     )
-    Row(
-        Modifier.fillMaxWidth().navigationBarsPadding().background(MoogColors.surface).padding(horizontal = 5.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceAround,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        tabItems.forEach { (tab, icon) ->
-            val active = selected == tab
-            Column(
-                Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { onSelect(tab) }.padding(vertical = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(icon, contentDescription = tab.label, tint = if (active) MoogColors.blue else MoogColors.secondaryLabel, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.height(3.dp))
-                Text(tab.label, color = if (active) MoogColors.blue else MoogColors.secondaryLabel, fontSize = 9.sp, fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal)
-            }
-        }
-    }
+    MoogTabBar(
+        items = items,
+        selectedKey = selected.name,
+        onSelect = { key -> Tab.values().firstOrNull { it.name == key }?.let(onSelect) }
+    )
 }
