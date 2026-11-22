@@ -69,7 +69,7 @@ private fun VoicemailScreen(onBack: () -> Unit) {
     var hasPermission by remember { mutableStateOf(VoicemailRepository.hasVoicemailPermission(context)) }
     var loadResult by remember { mutableStateOf<VoicemailLoadResult?>(null) }
     var refreshKey by remember { mutableIntStateOf(0) }
-    var isDefaultDialer by remember { mutableStateOf(isMoogDefaultDialer(context)) }
+    var isDefaultDialer by remember { mutableStateOf(isMoogDefaultPhoneApp(context)) }
     var phoneAccounts by remember { mutableStateOf<List<PhoneAccountOption>>(emptyList()) }
     var hasNotificationPermission by remember { mutableStateOf(android.os.Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) }
     var phoneNumberPermission by remember {
