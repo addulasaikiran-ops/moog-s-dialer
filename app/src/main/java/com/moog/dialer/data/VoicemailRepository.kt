@@ -8,6 +8,7 @@ import android.net.Uri
 import android.provider.VoicemailContract
 import android.telecom.PhoneAccountHandle
 import android.telephony.TelephonyManager
+import com.moog.dialer.data.PhoneAccountRepository
 import androidx.core.content.ContextCompat
 
 data class VoicemailMessage(
@@ -53,6 +54,7 @@ object VoicemailRepository {
         if (!hasVoicemailPermission(context)) return VoicemailLoadResult.PermissionRequired
         return try {
             val messages = mutableListOf<VoicemailMessage>()
+            val accountLabels = PhoneAccountRepository.getCallAccounts(context).associate { it.key to it.label }
             val cursor = context.contentResolver.query(
                 VoicemailContract.Voicemails.CONTENT_URI,
                 projection,
@@ -76,11 +78,8 @@ object VoicemailRepository {
                     val id = if (idIndex >= 0) it.getLong(idIndex) else continue
                     val component = if (componentIndex >= 0) it.getString(componentIndex).orEmpty() else ""
                     val accountId = if (accountIdIndex >= 0) it.getString(accountIdIndex).orEmpty() else ""
-                    val accountLabel = if (component.isNotBlank() && accountId.isNotBlank()) {
-                        "${component.substringAfterLast('.')} · ${accountId}"
-                    } else {
-                        "SIM not identified"
-                    }
+                    val accountKey = if (component.isNotBlank() && accountId.isNotBlank()) "$component|$accountId" else ""
+                    val accountLabel = accountLabels[accountKey] ?: "SIM not identified"
                     messages += VoicemailMessage(
                         id = id,
                         number = if (numberIndex >= 0) it.getString(numberIndex).orEmpty() else "",
