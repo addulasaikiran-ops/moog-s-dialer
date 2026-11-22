@@ -529,7 +529,7 @@ private fun VoicemailSettingField(label: String, value: String, onValueChange: (
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = MoogColors.label),
             decorationBox = { inner ->
-                if (value.isEmpty()) Text(stringResource(R.string.enter_voicemail_number), color = MoogColors.tertiaryLabel, style = MaterialTheme.typography.bodyLarge)
+                if (value.isEmpty()) Text(stringResource(R.string.enter_voicemail_number), color = MoogColors.secondaryLabel, style = MaterialTheme.typography.bodyLarge)
                 inner()
             }
         )
