@@ -92,16 +92,22 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
     var selectedTab by remember { mutableStateOf(Tab.Keypad) }
     var number by remember { mutableStateOf("") }
     var search by remember { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
     var hasContactsPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(
-            androidx.compose.ui.platform.LocalContext.current,
+            context,
             Manifest.permission.READ_CONTACTS
         ) == PackageManager.PERMISSION_GRANTED)
     }
-    val context = androidx.compose.ui.platform.LocalContext.current
     val contacts by contactsViewModel.contacts.collectAsState()
     val loading by contactsViewModel.loading.collectAsState()
-    val favorites = remember { mutableStateListOf<Long>() }
+    val favorites = remember(context) {
+        val saved = context.getSharedPreferences("moogs_dialer_preferences", 0)
+            .getStringSet("favorite_contact_ids", emptySet())
+            .orEmpty()
+            .mapNotNull { it.toLongOrNull() }
+        mutableStateListOf<Long>().apply { addAll(saved) }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -144,6 +150,10 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
                     onRequestPermission = { permissionLauncher.launch(Manifest.permission.READ_CONTACTS) },
                     onToggleFavorite = { id ->
                         if (favorites.contains(id)) favorites.remove(id) else favorites.add(id)
+                        context.getSharedPreferences("moogs_dialer_preferences", 0)
+                            .edit()
+                            .putStringSet("favorite_contact_ids", favorites.map { it.toString() }.toSet())
+                            .apply()
                     },
                     onDial = onDial
                 )
