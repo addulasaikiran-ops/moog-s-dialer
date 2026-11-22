@@ -110,7 +110,8 @@ internal fun RecentsScreen(
     isDefaultDialer: Boolean,
     hasPermission: Boolean,
     onRequestPermission: () -> Unit,
-    onDial: (String) -> Unit
+    onDial: (String) -> Unit,
+    onOpenDetails: (RecentCall) -> Unit
 ) {
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("All") }
@@ -222,6 +223,7 @@ internal fun RecentsScreen(
                                 callCount = group.calls.size,
                                 isBlocked = blockedByUser,
                                 onDial = { onDial(latestCall.number) },
+                                onOpenDetails = { onOpenDetails(latestCall) },
                                 onMessage = {
                                     if (latestCall.number.isNotBlank()) {
                                         context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", latestCall.number, null)))
@@ -242,7 +244,8 @@ private fun RecentCallRow(
     callCount: Int = 1,
     isBlocked: Boolean,
     onDial: () -> Unit,
-    onMessage: () -> Unit
+    onMessage: () -> Unit,
+    onOpenDetails: () -> Unit
 ) {
     val callType = when (call.type) {
         CallLog.Calls.INCOMING_TYPE -> "Incoming"
@@ -285,6 +288,9 @@ private fun RecentCallRow(
             if (isBlocked) {
                 Text("On your blocklist · blocked by you", color = MoogColors.red, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             }
+        }
+        IconButton(onClick = onOpenDetails) {
+            Icon(Icons.Default.Info, contentDescription = "Call details for ${call.number}", tint = MoogColors.secondaryLabel, modifier = Modifier.size(18.dp))
         }
         IconButton(onClick = onMessage, enabled = call.number.isNotBlank()) {
             Icon(Icons.Default.Sms, contentDescription = "Message ${call.number}", tint = MoogColors.blue, modifier = Modifier.size(18.dp))
