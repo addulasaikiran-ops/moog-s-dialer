@@ -314,7 +314,7 @@ private fun VoicemailMessageRow(
                     Box(
                         Modifier.size(9.dp).clip(CircleShape)
                             .background(if (message.isRead) Color.Transparent else MoogColors.blue)
-                            .semantics { contentDescription = if (message.isRead) "" else "Unread voicemail" }
+                            .semantics { contentDescription = if (message.isRead) "" else stringResource(R.string.unread_voicemail) }
                     )
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -348,7 +348,7 @@ private fun VoicemailMessageRow(
                         value = if (active) player.progress else 0f,
                         onValueChange = { if (active) player.seekTo(it) },
                         valueRange = 0f..1f,
-                        modifier = Modifier.semantics { contentDescription = "Voicemail playback position" }
+                        modifier = Modifier.semantics { contentDescription = stringResource(R.string.voicemail_playback_position) }
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(formatDuration(elapsedMs / 1000), color = MoogColors.secondaryLabel, fontSize = 10.sp)
