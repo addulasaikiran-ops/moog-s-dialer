@@ -112,12 +112,11 @@ private fun SimPreferencePicker(
     onSelect: (String?) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val selectedLabel = if (selectedKey == null) "System default / Ask every time"
-        else phoneAccounts.firstOrNull { it.key == selectedKey }?.label ?: "System default / Ask every time"
+    val selectedLabel = if (selectedKey == null) stringResource(R.string.system_default_ask) else phoneAccounts.firstOrNull { it.key == selectedKey }?.label ?: stringResource(R.string.system_default_ask)
 
     MoogListRow(
         title = stringResource(R.string.preferred_sim),
-        subtitle = "Outgoing calls · $selectedLabel",
+        subtitle = stringResource(R.string.outgoing_calls_selected_sim, selectedLabel),
         trailingValue = stringResource(R.string.change),
         showChevron = true,
         onClick = { expanded = true }
@@ -139,14 +138,14 @@ private fun SimPreferencePicker(
                 MoogListRow(
                     title = stringResource(R.string.system_default_ask),
                     subtitle = stringResource(R.string.system_choose_calling_account),
-                    trailingValue = if (selectedKey == null) "Selected" else null,
+                    trailingValue = if (selectedKey == null) stringResource(R.string.selected) else null,
                     onClick = { onSelect(null); expanded = false }
                 )
                 phoneAccounts.forEach { account ->
                     MoogListRow(
                         title = account.label,
                         subtitle = stringResource(R.string.sim_calling_account),
-                        trailingValue = if (selectedKey == account.key) "Selected" else null,
+                        trailingValue = if (selectedKey == account.key) stringResource(R.string.selected) else null,
                         onClick = { onSelect(account.key); expanded = false }
                     )
                 }
@@ -193,7 +192,7 @@ internal fun SettingsScreen(
                 MoogGroupedSection(title = stringResource(R.string.appearance), footer = stringResource(R.string.appearance_footer)) {
                     Column(Modifier.fillMaxWidth().padding(12.dp)) {
                         MoogSegmentedControl(
-                            options = listOf("System", "Light", "Dark"),
+                            options = listOf(stringResource(R.string.appearance_system), stringResource(R.string.appearance_light), stringResource(R.string.appearance_dark)),
                             selectedIndex = appearanceMode.ordinal,
                             onSelected = { index ->
                                 appearanceMode = MoogAppearanceMode.values()[index]
@@ -207,7 +206,7 @@ internal fun SettingsScreen(
             item {
                 MoogGroupedSection(
                     title = stringResource(R.string.calling),
-                    footer = if (isDefaultDialer) "MOOG'S DIALER can apply your calling SIM preference." else "Android controls outgoing calls until MOOG'S DIALER is selected as the default Phone app."
+                    footer = if (isDefaultDialer) stringResource(R.string.moog_calling_sim_footer) else stringResource(R.string.android_default_phone_footer)
                 ) {
                     if (isDefaultDialer) {
                         MoogListRow(
@@ -260,8 +259,8 @@ internal fun SettingsScreen(
                     if (Build.VERSION.SDK_INT >= 34) {
                         MoogListRow(
                             title = stringResource(R.string.full_screen_incoming_calls),
-                            subtitle = if (canUseFullScreenIntent) "Full-screen intent access is allowed" else "Allow the incoming call screen to appear over other apps",
-                            trailingValue = if (canUseFullScreenIntent) "On" else "Allow",
+                            subtitle = if (canUseFullScreenIntent) stringResource(R.string.full_screen_intent_allowed) else stringResource(R.string.allow_incoming_over_apps),
+                            trailingValue = if (canUseFullScreenIntent) stringResource(R.string.on) else stringResource(R.string.allow),
                             showChevron = !canUseFullScreenIntent,
                             onClick = if (canUseFullScreenIntent) null else onRequestFullScreenIntent
                         )
