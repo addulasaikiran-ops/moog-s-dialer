@@ -656,7 +656,7 @@ private fun ContactDetailScreen(
                             CallLog.Calls.REJECTED_TYPE -> "Rejected"
                             else -> "Call"
                         }
-                        val typeTint = if (call.type == CallLog.Calls.MISSED_TYPE || call.type == CallLog.Calls.REJECTED_TYPE) Color(0xFFD94B4B) else MoogColors.blue
+                        val typeTint = if (call.type == CallLog.Calls.MISSED_TYPE || call.type == CallLog.Calls.REJECTED_TYPE) MoogColors.red else MoogColors.blue
                         val timeLabel = DateUtils.getRelativeTimeSpanString(
                             call.date,
                             System.currentTimeMillis(),
@@ -812,7 +812,7 @@ private fun RecentCallRow(
         else -> "Call"
     }
     val callColor = if (call.type == CallLog.Calls.MISSED_TYPE || call.type == CallLog.Calls.REJECTED_TYPE) {
-        Color(0xFFD94B4B)
+        MoogColors.red
     } else MoogColors.blue
     val relativeTime = DateUtils.getRelativeTimeSpanString(
         call.date,
@@ -835,7 +835,7 @@ private fun RecentCallRow(
             Text("${callType} · ${relativeTime}", color = callColor, fontSize = 11.sp)
             Text(call.number.ifBlank { "Private number" } + " · " + call.simLabel, color = MoogColors.secondaryLabel, fontSize = 10.sp)
             if (isBlocked) {
-                Text("On your blocklist · blocked by you", color = Color(0xFFD94B4B), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                Text("On your blocklist · blocked by you", color = MoogColors.red, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
             }
         }
         TextButton(onClick = onToggleBlock, enabled = call.number.isNotBlank()) {
@@ -999,7 +999,7 @@ private fun ScreenTitle(title: String, subtitle: String) {
 @Composable
 private fun SearchField(value: String, onValueChange: (String) -> Unit, placeholder: String) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFFE9EBEF)).padding(horizontal = 13.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(MoogColors.fill).padding(horizontal = 13.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(Icons.Default.Search, contentDescription = null, tint = MoogColors.secondaryLabel, modifier = Modifier.size(18.dp))
