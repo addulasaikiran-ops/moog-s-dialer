@@ -1,29 +1,32 @@
 package com.moog.dialer
 
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.pluralStringResource
 import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.database.Cursor
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.ContactsContract
 import android.telecom.TelecomManager
 import android.text.format.DateUtils
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
@@ -31,6 +34,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,12 +53,14 @@ import com.moog.dialer.data.PhoneAccountRepository
 import com.moog.dialer.data.VoicemailLoadResult
 import com.moog.dialer.data.VoicemailMessage
 import com.moog.dialer.data.VoicemailRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.moog.dialer.ui.components.MoogConfirmSheet
+import com.moog.dialer.ui.components.MoogGroupedSection
+import com.moog.dialer.ui.components.MoogLargeTitleScaffold
+import com.moog.dialer.ui.components.MoogListRow
 import com.moog.dialer.ui.theme.MoogColors
 import com.moog.dialer.ui.theme.MoogTheme
-import com.moog.dialer.ui.components.MoogLargeTitleScaffold
-
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class VoicemailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,6 +88,9 @@ private fun VoicemailScreen(onBack: () -> Unit) {
     }
     var defaultNumber by remember { mutableStateOf(VoicemailRepository.getNumber(context).ifBlank { VoicemailRepository.resolveDeviceVoicemailNumber(context).orEmpty() }) }
     var perSimNumbers by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var showSettings by remember { mutableStateOf(false) }
+    var expandedMessageId by remember { mutableStateOf<Long?>(null) }
+    var pendingDelete by remember { mutableStateOf<VoicemailMessage?>(null) }
     val player = remember { VoicemailPlaybackController(context) }
 
     val voicemailPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -96,9 +105,8 @@ private fun VoicemailScreen(onBack: () -> Unit) {
     }
 
     LaunchedEffect(hasPermission, refreshKey) {
-        loadResult = if (hasPermission) withContext(Dispatchers.IO) {
-            VoicemailRepository.load(context)
-        } else VoicemailLoadResult.PermissionRequired
+        loadResult = if (hasPermission) withContext(Dispatchers.IO) { VoicemailRepository.load(context) }
+        else VoicemailLoadResult.PermissionRequired
     }
     LaunchedEffect(phoneNumberPermission) {
         if (phoneNumberPermission) {
@@ -107,6 +115,24 @@ private fun VoicemailScreen(onBack: () -> Unit) {
         }
     }
     DisposableEffect(player) { onDispose { player.release() } }
+
+    if (showSettings) {
+        VoicemailSettingsScreen(
+            defaultNumber = defaultNumber,
+            onDefaultNumberChange = { defaultNumber = it },
+            phoneNumberPermission = phoneNumberPermission,
+            phoneAccounts = phoneAccounts,
+            perSimNumbers = perSimNumbers,
+            onPerSimNumberChange = { key, value -> perSimNumbers = perSimNumbers + (key to value) },
+            onSaveDefault = { VoicemailRepository.saveNumber(context, null, defaultNumber) },
+            onSaveSim = { key, value -> VoicemailRepository.saveNumber(context, key, value) },
+            onCallDefault = { openVoicemailCall(context, defaultNumber, null) },
+            onCallSim = { value, account -> openVoicemailCall(context, value, account) },
+            onRequestSimPermission = { phonePermissionLauncher.launch(arrayOf(Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_PHONE_NUMBERS)) },
+            onBack = { showSettings = false }
+        )
+        return
+    }
 
     val messages = (loadResult as? VoicemailLoadResult.Available)?.messages.orEmpty()
     val unreadCount = messages.count { !it.isRead }
@@ -119,10 +145,10 @@ private fun VoicemailScreen(onBack: () -> Unit) {
             }
         },
         actions = {
-            IconButton(onClick = {
-                VoicemailRepository.requestSync(context)
-                refreshKey++
-            }) {
+            IconButton(onClick = { showSettings = true }) {
+                Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.voicemail_settings), tint = MoogColors.blue)
+            }
+            IconButton(onClick = { VoicemailRepository.requestSync(context); refreshKey++ }) {
                 Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh_voicemail), tint = MoogColors.blue)
             }
         }
@@ -134,7 +160,8 @@ private fun VoicemailScreen(onBack: () -> Unit) {
         ) {
             item {
                 Text(
-                    if (unreadCount == 0) stringResource(R.string.your_voicemail_inbox) else pluralStringResource(R.plurals.unread_voicemail_count, unreadCount, unreadCount),
+                    if (unreadCount == 0) stringResource(R.string.your_voicemail_inbox)
+                    else pluralStringResource(R.plurals.unread_voicemail_count, unreadCount, unreadCount),
                     color = MoogColors.secondaryLabel,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
@@ -156,29 +183,20 @@ private fun VoicemailScreen(onBack: () -> Unit) {
                         },
                         color = MoogColors.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold
                     )
-                    Text(
-                        stringResource(R.string.voicemail_source_explanation),
-                        color = MoogColors.secondaryLabel, fontSize = 11.sp, lineHeight = 16.sp
-                    )
+                    Text(stringResource(R.string.voicemail_source_explanation), color = MoogColors.secondaryLabel, fontSize = 11.sp, lineHeight = 16.sp)
                     when (loadResult) {
-                        VoicemailLoadResult.PermissionRequired -> Button(
-                            onClick = { voicemailPermissionLauncher.launch(Manifest.permission.ADD_VOICEMAIL) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.allow_voicemail_access)) }
-                        VoicemailLoadResult.ProviderUnavailable -> OutlinedButton(
-                            onClick = { refreshKey++ }, modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.try_again)) }
+                        VoicemailLoadResult.PermissionRequired -> MoogActionRow(stringResource(R.string.allow_voicemail_access)) {
+                            voicemailPermissionLauncher.launch(Manifest.permission.ADD_VOICEMAIL)
+                        }
+                        VoicemailLoadResult.ProviderUnavailable -> MoogActionRow(stringResource(R.string.try_again)) { refreshKey++ }
                         else -> Unit
                     }
                     if (!hasNotificationPermission && android.os.Build.VERSION.SDK_INT >= 33) {
-                        OutlinedButton(
-                            onClick = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.enable_voicemail_notifications)) }
+                        MoogActionRow(stringResource(R.string.enable_voicemail_notifications)) {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
                     }
-                    if (!isDefaultDialer) {
-                        Text(stringResource(R.string.default_phone_visual_voicemail_note), color = MoogColors.secondaryLabel, fontSize = 10.sp)
-                    }
+                    if (!isDefaultDialer) Text(stringResource(R.string.default_phone_visual_voicemail_note), color = MoogColors.secondaryLabel, fontSize = 10.sp)
                 }
             }
 
@@ -195,9 +213,15 @@ private fun VoicemailScreen(onBack: () -> Unit) {
             }
 
             items(messages, key = { it.id }) { message ->
-                VoicemailMessageCard(
+                val callerName = remember(message.number, hasContactsPermission(context)) {
+                    resolveVoicemailCaller(context, message.number)
+                }
+                VoicemailMessageRow(
                     message = message,
+                    callerName = callerName,
+                    expanded = expandedMessageId == message.id,
                     player = player,
+                    onExpand = { expandedMessageId = if (expandedMessageId == message.id) null else message.id },
                     onPlay = {
                         if (!message.isRead) VoicemailRepository.markRead(context, message, true)
                         player.toggle(message)
@@ -207,64 +231,286 @@ private fun VoicemailScreen(onBack: () -> Unit) {
                         VoicemailRepository.markRead(context, message, !message.isRead)
                         refreshKey++
                     },
-                    onDelete = {
-                        if (player.currentMessageId == message.id) player.stop()
-                        VoicemailRepository.delete(context, message)
-                        refreshKey++
-                    },
+                    onRequestDelete = { pendingDelete = message },
                     onCallback = { openVoicemailCall(context, message.number, null) }
                 )
             }
+        }
+    }
 
-            item {
-                Spacer(Modifier.height(4.dp))
-                Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MoogColors.surface).padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(stringResource(R.string.call_your_voicemail), color = MoogColors.blue, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-                    Text(stringResource(R.string.carrier_mailbox_fallback), color = MoogColors.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                    Text(stringResource(R.string.save_voicemail_number_hint), color = MoogColors.secondaryLabel, fontSize = 11.sp, lineHeight = 16.sp)
-                    OutlinedTextField(value = defaultNumber, onValueChange = { defaultNumber = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.default_voicemail_number)) }, singleLine = true)
-                    Button(onClick = { VoicemailRepository.saveNumber(context, null, defaultNumber) }, modifier = Modifier.fillMaxWidth(), enabled = defaultNumber.isNotBlank()) {
-                        Text(stringResource(R.string.save_voicemail_number))
+    pendingDelete?.let { message ->
+        MoogConfirmSheet(
+            title = stringResource(R.string.delete_voicemail_title),
+            message = stringResource(R.string.delete_voicemail_confirmation),
+            confirmLabel = stringResource(R.string.delete_voicemail),
+            onConfirm = {
+                if (player.currentMessageId == message.id) player.stop()
+                VoicemailRepository.delete(context, message)
+                pendingDelete = null
+                refreshKey++
+            },
+            onDismiss = { pendingDelete = null }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+private fun VoicemailMessageRow(
+    message: VoicemailMessage,
+    callerName: String,
+    expanded: Boolean,
+    player: VoicemailPlaybackController,
+    onExpand: () -> Unit,
+    onPlay: () -> Unit,
+    onToggleRead: () -> Unit,
+    onRequestDelete: () -> Unit,
+    onCallback: () -> Unit
+) {
+    val active = player.currentMessageId == message.id
+    val relativeDate = DateUtils.getRelativeTimeSpanString(
+        message.dateMillis, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS
+    ).toString()
+    var menuExpanded by remember { mutableStateOf(false) }
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> onToggleRead()
+                SwipeToDismissBoxValue.EndToStart -> onRequestDelete()
+                SwipeToDismissBoxValue.Settled -> Unit
+            }
+            false
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = true,
+        backgroundContent = {
+            val deleteSide = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart
+            Row(
+                Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp))
+                    .background(if (deleteSide) MoogColors.red.copy(alpha = 0.12f) else MoogColors.blue.copy(alpha = 0.12f))
+                    .padding(horizontal = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (deleteSide) Arrangement.End else Arrangement.Start
+            ) {
+                Text(
+                    if (deleteSide) stringResource(R.string.delete_voicemail) else stringResource(if (message.isRead) R.string.mark_unread else R.string.mark_read),
+                    color = if (deleteSide) MoogColors.red else MoogColors.blue,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        },
+        content = {
+            Column(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MoogColors.surface)
+                    .combinedClickable(onClick = onExpand, onLongClick = { menuExpanded = true })
+                    .padding(horizontal = 14.dp, vertical = 13.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(9.dp).clip(CircleShape)
+                            .background(if (message.isRead) Color.Transparent else MoogColors.blue)
+                            .semantics { contentDescription = if (message.isRead) "" else "Unread voicemail" }
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(callerName, color = MoogColors.label, fontSize = 15.sp, fontWeight = if (message.isRead) FontWeight.Medium else FontWeight.Bold)
+                        Text(message.number.ifBlank { stringResource(R.string.unknown_caller) }, color = MoogColors.secondaryLabel, fontSize = 11.sp)
                     }
-                    OutlinedButton(onClick = { if (defaultNumber.isNotBlank()) openVoicemailCall(context, defaultNumber, null) }, modifier = Modifier.fillMaxWidth(), enabled = defaultNumber.isNotBlank()) {
-                        Icon(Icons.Default.Call, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.call_voicemail))
-                    }
-                    if (!phoneNumberPermission) {
-                        TextButton(onClick = { phonePermissionLauncher.launch(arrayOf(Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_PHONE_NUMBERS)) }) {
-                            Text(stringResource(R.string.allow_sim_access_mailbox))
+                    Text(relativeDate, color = MoogColors.secondaryLabel, fontSize = 10.sp)
+                }
+                Row(Modifier.padding(start = 21.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(formatDuration(message.durationSeconds), color = MoogColors.secondaryLabel, fontSize = 10.sp)
+                    Text("·", color = MoogColors.secondaryLabel, fontSize = 10.sp)
+                    Text(message.accountLabel, color = MoogColors.secondaryLabel, fontSize = 10.sp)
+                }
+
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(if (message.isRead) R.string.mark_unread else R.string.mark_read)) },
+                        onClick = { menuExpanded = false; onToggleRead() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.delete_voicemail), color = MoogColors.red) },
+                        onClick = { menuExpanded = false; onRequestDelete() }
+                    )
+                }
+
+                if (expanded) {
+                    HorizontalDivider(color = MoogColors.separator)
+                    if (active) {
+                        Slider(
+                            value = player.progress,
+                            onValueChange = player::seekTo,
+                            valueRange = 0f..1f,
+                            modifier = Modifier.semantics { contentDescription = "Voicemail playback position" }
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(formatDuration(player.positionMs / 1000), color = MoogColors.secondaryLabel, fontSize = 10.sp)
+                            Spacer(Modifier.weight(1f))
+                            listOf(1f, 1.5f, 2f).forEach { speed ->
+                                Surface(
+                                    onClick = { player.setSpeed(speed) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (player.playbackSpeed == speed) MoogColors.blue.copy(alpha = 0.12f) else Color.Transparent
+                                ) {
+                                    Text(
+                                        stringResource(R.string.playback_speed, speed.toString()),
+                                        color = if (player.playbackSpeed == speed) MoogColors.blue else MoogColors.secondaryLabel,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.weight(1f))
+                            Text("−${formatDuration((player.durationMs - player.positionMs).coerceAtLeast(0L) / 1000)}", color = MoogColors.secondaryLabel, fontSize = 10.sp)
                         }
-                    } else if (phoneAccounts.isNotEmpty()) {
-                        HorizontalDivider()
-                        Text(stringResource(R.string.per_sim_mailbox_numbers), color = MoogColors.secondaryLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp)
-                        phoneAccounts.forEach { account ->
+                    }
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        MoogActionRow(
+                            label = stringResource(if (active && player.isPlaying) R.string.pause else R.string.play),
+                            enabled = message.hasContent,
+                            modifier = Modifier.weight(1f),
+                            leading = {
+                                Icon(if (active && player.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = null, tint = MoogColors.blue)
+                            },
+                            onClick = onPlay
+                        )
+                        MoogActionRow(
+                            label = stringResource(R.string.callback),
+                            enabled = message.number.isNotBlank(),
+                            modifier = Modifier.weight(1f),
+                            leading = { Icon(Icons.Default.Call, contentDescription = null, tint = MoogColors.blue) },
+                            onClick = onCallback
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MoogActionRow(
+                            label = stringResource(if (message.isRead) R.string.mark_unread else R.string.mark_read),
+                            modifier = Modifier.weight(1f),
+                            onClick = onToggleRead
+                        )
+                        MoogActionRow(
+                            label = stringResource(R.string.delete_voicemail),
+                            destructive = true,
+                            modifier = Modifier.weight(1f),
+                            leading = { Icon(Icons.Default.Delete, contentDescription = null, tint = MoogColors.red) },
+                            onClick = onRequestDelete
+                        )
+                    }
+                    if (!message.hasContent) {
+                        Text(stringResource(R.string.voicemail_audio_not_available), color = MoogColors.secondaryLabel, fontSize = 10.sp)
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun VoicemailSettingsScreen(
+    defaultNumber: String,
+    onDefaultNumberChange: (String) -> Unit,
+    phoneNumberPermission: Boolean,
+    phoneAccounts: List<PhoneAccountOption>,
+    perSimNumbers: Map<String, String>,
+    onPerSimNumberChange: (String, String) -> Unit,
+    onSaveDefault: () -> Unit,
+    onSaveSim: (String, String) -> Unit,
+    onCallDefault: () -> Unit,
+    onCallSim: (String, PhoneAccountOption) -> Unit,
+    onRequestSimPermission: () -> Unit,
+    onBack: () -> Unit
+) {
+    MoogLargeTitleScaffold(
+        title = stringResource(R.string.voicemail_settings),
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back), tint = MoogColors.blue)
+            }
+        }
+    ) { padding ->
+        LazyColumn(
+            Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            item {
+                MoogGroupedSection(
+                    title = stringResource(R.string.carrier_mailbox_fallback),
+                    footer = stringResource(R.string.save_voicemail_number_hint)
+                ) {
+                    VoicemailSettingField(
+                        label = stringResource(R.string.default_voicemail_number),
+                        value = defaultNumber,
+                        onValueChange = onDefaultNumberChange
+                    )
+                    HorizontalDivider(color = MoogColors.separator)
+                    MoogListRow(
+                        title = stringResource(R.string.save_voicemail_number),
+                        onClick = onSaveDefault,
+                        destructive = false
+                    )
+                    HorizontalDivider(color = MoogColors.separator)
+                    MoogListRow(
+                        title = stringResource(R.string.call_voicemail),
+                        leading = { Icon(Icons.Default.Call, contentDescription = null, tint = MoogColors.blue) },
+                        onClick = onCallDefault
+                    )
+                }
+            }
+            item {
+                MoogGroupedSection(
+                    title = stringResource(R.string.per_sim_mailbox_numbers),
+                    footer = stringResource(R.string.voicemail_sim_numbers_explanation)
+                ) {
+                    if (!phoneNumberPermission) {
+                        MoogListRow(
+                            title = stringResource(R.string.allow_sim_access_mailbox),
+                            onClick = onRequestSimPermission,
+                            showChevron = true
+                        )
+                    } else if (phoneAccounts.isEmpty()) {
+                        MoogListRow(title = stringResource(R.string.no_sim_accounts_available))
+                    } else {
+                        phoneAccounts.forEachIndexed { index, account ->
                             val value = perSimNumbers[account.key].orEmpty()
-                            OutlinedTextField(value = value, onValueChange = { perSimNumbers = perSimNumbers + (account.key to it) }, modifier = Modifier.fillMaxWidth(), label = { Text(account.label) }, singleLine = true)
-                            OutlinedButton(onClick = { VoicemailRepository.saveNumber(context, account.key, value) }, modifier = Modifier.fillMaxWidth(), enabled = value.isNotBlank()) {
-                                Text(stringResource(R.string.save_for_sim, account.label))
-                            }
-                            OutlinedButton(onClick = { openVoicemailCall(context, value, account) }, modifier = Modifier.fillMaxWidth(), enabled = value.isNotBlank()) {
-                                Text(stringResource(R.string.call_using_sim, account.label))
-                            }
+                            VoicemailSettingField(
+                                label = account.label,
+                                value = value,
+                                onValueChange = { onPerSimNumberChange(account.key, it) }
+                            )
+                            HorizontalDivider(color = MoogColors.separator)
+                            MoogListRow(
+                                title = stringResource(R.string.save_for_sim, account.label),
+                                onClick = { onSaveSim(account.key, value) }
+                            )
+                            MoogListRow(
+                                title = stringResource(R.string.call_using_sim, account.label),
+                                leading = { Icon(Icons.Default.Call, contentDescription = null, tint = MoogColors.blue) },
+                                onClick = { onCallSim(value, account) }
+                            )
+                            if (index != phoneAccounts.lastIndex) HorizontalDivider(color = MoogColors.separator)
                         }
                     }
                 }
             }
-
             item {
-                Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MoogColors.surface).padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                MoogGroupedSection(
+                    title = stringResource(R.string.custom_voicemail_server),
+                    footer = stringResource(R.string.custom_voicemail_server_explanation)
                 ) {
-                    Text(stringResource(R.string.custom_voicemail_server), color = MoogColors.blue, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-                    Text(stringResource(R.string.custom_voicemail_not_connected), color = MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        stringResource(R.string.custom_voicemail_server_explanation),
-                        color = MoogColors.secondaryLabel, fontSize = 11.sp, lineHeight = 16.sp
+                    MoogListRow(
+                        title = stringResource(R.string.custom_voicemail_not_connected),
+                        subtitle = stringResource(R.string.custom_voicemail_server_honesty)
                     )
                 }
             }
@@ -273,66 +519,68 @@ private fun VoicemailScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun VoicemailMessageCard(
-    message: VoicemailMessage,
-    player: VoicemailPlaybackController,
-    onPlay: () -> Unit,
-    onToggleRead: () -> Unit,
-    onDelete: () -> Unit,
-    onCallback: () -> Unit
-) {
-    val context = LocalContext.current
-    val active = player.currentMessageId == message.id
-    val time = DateUtils.getRelativeTimeSpanString(message.dateMillis, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString()
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MoogColors.surface).padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(38.dp).clip(CircleShape).background(MoogColors.fill), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MoogColors.blue)
+private fun VoicemailSettingField(label: String, value: String, onValueChange: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Text(label, color = MoogColors.secondaryLabel, style = MaterialTheme.typography.labelMedium)
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MoogColors.label),
+            decorationBox = { inner ->
+                if (value.isEmpty()) Text(stringResource(R.string.enter_voicemail_number), color = MoogColors.tertiaryLabel, style = MaterialTheme.typography.bodyLarge)
+                inner()
             }
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(message.number.ifBlank { stringResource(R.string.unknown_caller) }, color = MoogColors.label, fontSize = 14.sp, fontWeight = if (message.isRead) FontWeight.Medium else FontWeight.Bold)
-                Text(stringResource(R.string.voicemail_message_metadata, time, formatDuration(message.durationSeconds), message.accountLabel), color = MoogColors.secondaryLabel, fontSize = 10.sp)
-            }
-            if (!message.isRead) Box(
-                Modifier.size(7.dp).clip(CircleShape).background(MoogColors.blue)
-                    .semantics { contentDescription = context.getString(R.string.unread_voicemail) }
-            )
-        }
-        if (active) {
-            Slider(
-                value = player.progress,
-                onValueChange = { player.seekTo(it) },
-                valueRange = 0f..1f,
-                modifier = Modifier.semantics { contentDescription = context.getString(R.string.voicemail_playback_position) }
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(formatDuration(player.positionMs / 1000), color = MoogColors.secondaryLabel, fontSize = 10.sp)
-                Spacer(Modifier.weight(1f))
-                listOf(1f, 1.5f, 2f).forEach { speed ->
-                    TextButton(onClick = { player.setSpeed(speed) }, contentPadding = PaddingValues(horizontal = 5.dp)) {
-                        Text(stringResource(R.string.playback_speed, speed.toString()), color = if (player.playbackSpeed == speed) MoogColors.blue else MoogColors.secondaryLabel, fontSize = 10.sp)
-                    }
-                }
-                Text(formatDuration(player.durationMs / 1000), color = MoogColors.secondaryLabel, fontSize = 10.sp)
-            }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = onPlay, enabled = message.hasContent, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
-                Icon(if (active && player.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = null)
-                Spacer(Modifier.width(5.dp))
-                Text(if (!message.hasContent) stringResource(R.string.audio_unavailable) else if (active && player.isPlaying) stringResource(R.string.pause) else stringResource(R.string.play))
-            }
-            TextButton(onClick = onCallback, enabled = message.number.isNotBlank()) { Text(stringResource(R.string.callback)) }
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = onToggleRead) { Text(if (message.isRead) stringResource(R.string.mark_unread) else stringResource(R.string.mark_read)) }
-            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_voicemail), tint = MoogColors.secondaryLabel) }
-        }
-        if (!message.hasContent) Text(stringResource(R.string.voicemail_audio_not_available), color = MoogColors.secondaryLabel, fontSize = 10.sp)
+        )
     }
+}
+
+@Composable
+private fun MoogActionRow(
+    label: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    destructive: Boolean = false,
+    leading: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier.defaultMinSize(minHeight = 42.dp),
+        shape = RoundedCornerShape(10.dp),
+        color = if (destructive) MoogColors.red.copy(alpha = 0.09f) else MoogColors.fill,
+        enabled = enabled,
+        onClick = onClick
+    ) {
+        Row(
+            Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            leading?.invoke()
+            if (leading != null) Spacer(Modifier.width(6.dp))
+            Text(label, color = if (destructive) MoogColors.red else if (enabled) MoogColors.blue else MoogColors.secondaryLabel, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+private fun hasContactsPermission(context: Context): Boolean =
+    ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
+
+private fun resolveVoicemailCaller(context: Context, number: String): String {
+    if (number.isBlank() || !hasContactsPermission(context)) return number.ifBlank { context.getString(R.string.unknown_caller) }
+    val lookupUri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
+    return runCatching {
+        context.contentResolver.query(
+            lookupUri,
+            arrayOf(ContactsContract.PhoneLookup.DISPLAY_NAME),
+            null,
+            null,
+            null
+        )?.use { cursor: Cursor ->
+            if (cursor.moveToFirst()) cursor.getString(0)?.takeIf { it.isNotBlank() } else null
+        }
+    }.getOrNull() ?: number
 }
 
 private class VoicemailPlaybackController(private val context: Context) {
@@ -373,8 +621,6 @@ private class VoicemailPlaybackController(private val context: Context) {
                 isPlaying = false
                 handler.removeCallbacks(progressTask)
             } else {
-                // A completed recording remains selected. Restart it from the
-                // beginning when the user presses Play again.
                 if (durationMs > 0L && positionMs >= durationMs) {
                     current.seekTo(0)
                     positionMs = 0L
