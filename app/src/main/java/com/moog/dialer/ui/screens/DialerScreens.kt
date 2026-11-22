@@ -71,7 +71,11 @@ import com.moog.dialer.data.PhoneAccountOption
 import com.moog.dialer.data.PhoneAccountRepository
 import com.moog.dialer.ui.theme.MoogColors
 import com.moog.dialer.ui.theme.MoogTheme
+import com.moog.dialer.ui.theme.MoogAppearanceMode
+import com.moog.dialer.ui.theme.MoogAppearancePreferences
 import com.moog.dialer.ui.components.MoogTabBar
+import com.moog.dialer.ui.components.MoogGroupedSection
+import com.moog.dialer.ui.components.MoogSegmentedControl
 import com.moog.dialer.ui.components.MoogTabItem
 import com.moog.dialer.ContactsViewModel
 import com.moog.dialer.SpamBlockRepository
@@ -962,6 +966,8 @@ private fun SettingsScreen(
     onOpenSpamProtection: () -> Unit,
     onOpenVoicemail: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var appearanceMode by remember(context) { mutableStateOf(MoogAppearancePreferences.get(context)) }
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         ScreenTitle("Settings", "Make calling feel like yours")
         if (!isDefaultDialer) {
@@ -1031,7 +1037,19 @@ private fun SettingsScreen(
             }
         }
         Spacer(Modifier.height(6.dp))
-        SettingsRow("Appearance", "iPhone-inspired light interface")
+        MoogGroupedSection(title = "APPEARANCE", footer = "System follows your phone's display setting.") {
+            Column(Modifier.fillMaxWidth().padding(12.dp)) {
+                MoogSegmentedControl(
+                    options = listOf("System", "Light", "Dark"),
+                    selectedIndex = appearanceMode.ordinal,
+                    onSelected = { index ->
+                        appearanceMode = MoogAppearanceMode.values()[index]
+                        MoogAppearancePreferences.set(context, appearanceMode)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
         SettingsRow("Contacts", "On-device contact access")
         SettingsRow("Calling", "Telecom calling with system dialer fallback")
         SettingsRow("Privacy", "No account or cloud contact sync")
