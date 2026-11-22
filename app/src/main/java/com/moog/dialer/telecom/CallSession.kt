@@ -20,7 +20,9 @@ data class CallUiEntry(
     val number: String,
     val state: Int,
     val canHold: Boolean,
-    val simLabel: String
+    val simLabel: String,
+    val conferenceableCalls: List<Call>,
+    val conferenceChildCount: Int
 )
 
 object CallSession {
@@ -50,6 +52,7 @@ object CallSession {
             override fun onDetailsChanged(call: Call, details: Call.Details) = update(call)
             override fun onParentChanged(call: Call, parent: Call?) = update(call)
             override fun onChildrenChanged(call: Call, children: MutableList<Call>) = update(call)
+            override fun onConferenceableCallsChanged(call: Call, conferenceableCalls: MutableList<Call>) = update(call)
         }
         callbacks[call] = callback
         call.registerCallback(callback)
@@ -66,7 +69,9 @@ object CallSession {
             number = handle.ifBlank { "Private number" },
             state = call.state,
             canHold = call.details.callCapabilities and Call.Details.CAPABILITY_HOLD != 0,
-            simLabel = accountLabel
+            simLabel = accountLabel,
+            conferenceableCalls = call.conferenceableCalls.toList(),
+            conferenceChildCount = call.children.size
         )
         publish()
         service?.refreshCallNotification()
@@ -119,8 +124,30 @@ object CallSession {
             ?: snapshot.firstOrNull()
     }
 
+    /**
+     * Ask Telecom to answer a ringing call. For call waiting, Telecom/the
+     * ConnectionService coordinates holding the current call when supported.
+     */
     fun answer(call: Call) {
         call.answer(call.details.videoState)
+    }
+
+    /** Swap a foreground call with a held call when both expose hold support. */
+    fun swapCalls(foreground: Call, held: Call) {
+        if (foreground.state != Call.STATE_ACTIVE || held.state != Call.STATE_HOLDING) return
+        if (foreground.details.callCapabilities and Call.Details.CAPABILITY_HOLD == 0) return
+        if (held.details.callCapabilities and Call.Details.CAPABILITY_HOLD == 0) return
+        foreground.hold()
+        held.unhold()
+    }
+
+    /**
+     * Merge only when Telecom explicitly lists the other call as conferenceable.
+     * Carrier and ConnectionService support determines whether this succeeds.
+     */
+    fun conference(first: Call, second: Call) {
+        if (second !in first.conferenceableCalls && first !in second.conferenceableCalls) return
+        first.conference(second)
     }
 
     fun reject(call: Call) {
