@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+private const val DTMF_TONE_DURATION_MS = 120L
+
 data class CallAudioUiState(
     val isMuted: Boolean = false,
     val isSpeakerOn: Boolean = false,
