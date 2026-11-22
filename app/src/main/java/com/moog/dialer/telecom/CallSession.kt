@@ -2,17 +2,23 @@ package com.moog.dialer.telecom
 
 import android.telecom.Call
 import android.telecom.CallAudioState
+import android.telecom.PhoneAccountHandle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-data class CallAudioUiState(val isMuted: Boolean = false, val isSpeakerOn: Boolean = false)
+data class CallAudioUiState(
+    val isMuted: Boolean = false,
+    val isSpeakerOn: Boolean = false,
+    val availableRoutes: Int = CallAudioState.ROUTE_EARPIECE
+)
 
 data class CallUiEntry(
     val call: Call,
     val number: String,
     val state: Int,
-    val canHold: Boolean
+    val canHold: Boolean,
+    val simLabel: String
 )
 
 object CallSession {
@@ -24,6 +30,8 @@ object CallSession {
     val audio: StateFlow<CallAudioUiState> = mutableAudio.asStateFlow()
 
     @Volatile private var service: MoogInCallService? = null
+    @Volatile private var currentAudioRoute: Int = CallAudioState.ROUTE_EARPIECE
+    @Volatile private var availableAudioRoutes: Int = CallAudioState.ROUTE_EARPIECE
     @Volatile var isMuted: Boolean = false
         private set
     @Volatile var isSpeakerOn: Boolean = false
@@ -46,14 +54,33 @@ object CallSession {
     @Synchronized
     fun update(call: Call) {
         val handle = call.details.handle?.schemeSpecificPart.orEmpty()
+        val accountHandle = call.details.accountHandle
+        val accountLabel = resolveAccountLabel(accountHandle)
         entries[call] = CallUiEntry(
             call = call,
             number = handle.ifBlank { "Private number" },
             state = call.state,
-            canHold = call.details.callCapabilities and Call.Details.CAPABILITY_HOLD != 0
+            canHold = call.details.callCapabilities and Call.Details.CAPABILITY_HOLD != 0,
+            simLabel = accountLabel
         )
         publish()
         service?.refreshCallNotification()
+    }
+
+    private fun resolveAccountLabel(handle: PhoneAccountHandle?): String {
+        if (handle == null) return "SIM not identified"
+        return try {
+            service?.getSystemService(android.telecom.TelecomManager::class.java)
+                ?.getPhoneAccount(handle)
+                ?.label
+                ?.toString()
+                ?.takeIf { it.isNotBlank() }
+                ?: "SIM"
+        } catch (_: SecurityException) {
+            "SIM"
+        } catch (_: RuntimeException) {
+            "SIM"
+        }
     }
 
     @Synchronized
@@ -66,6 +93,8 @@ object CallSession {
             service = null
             isMuted = false
             isSpeakerOn = false
+            currentAudioRoute = CallAudioState.ROUTE_EARPIECE
+            availableAudioRoutes = CallAudioState.ROUTE_EARPIECE
             mutableAudio.value = CallAudioUiState()
         } else {
             service?.refreshCallNotification()
@@ -103,21 +132,41 @@ object CallSession {
     fun toggleMute() {
         isMuted = !isMuted
         service?.setMuted(isMuted)
-        mutableAudio.value = CallAudioUiState(isMuted, isSpeakerOn)
+        publishAudio()
     }
 
     fun toggleSpeaker() {
-        val nextRoute = if (isSpeakerOn) CallAudioState.ROUTE_EARPIECE else CallAudioState.ROUTE_SPEAKER
+        val speakerAvailable = availableAudioRoutes and CallAudioState.ROUTE_SPEAKER != 0
+        if (!speakerAvailable) return
+
+        val nextRoute = if (currentAudioRoute == CallAudioState.ROUTE_SPEAKER) {
+            when {
+                availableAudioRoutes and CallAudioState.ROUTE_BLUETOOTH != 0 -> CallAudioState.ROUTE_BLUETOOTH
+                availableAudioRoutes and CallAudioState.ROUTE_WIRED_HEADSET != 0 -> CallAudioState.ROUTE_WIRED_HEADSET
+                availableAudioRoutes and CallAudioState.ROUTE_EARPIECE != 0 -> CallAudioState.ROUTE_EARPIECE
+                else -> return
+            }
+        } else {
+            CallAudioState.ROUTE_SPEAKER
+        }
         service?.setAudioRoute(nextRoute)
-        isSpeakerOn = !isSpeakerOn
-        mutableAudio.value = CallAudioUiState(isMuted, isSpeakerOn)
     }
 
     fun updateAudioState(state: CallAudioState?) {
         if (state != null) {
             isMuted = state.isMuted
+            currentAudioRoute = state.route
+            availableAudioRoutes = state.supportedRouteMask
             isSpeakerOn = state.route == CallAudioState.ROUTE_SPEAKER
-            mutableAudio.value = CallAudioUiState(isMuted, isSpeakerOn)
+            publishAudio()
         }
+    }
+
+    private fun publishAudio() {
+        mutableAudio.value = CallAudioUiState(
+            isMuted = isMuted,
+            isSpeakerOn = isSpeakerOn,
+            availableRoutes = availableAudioRoutes
+        )
     }
 }

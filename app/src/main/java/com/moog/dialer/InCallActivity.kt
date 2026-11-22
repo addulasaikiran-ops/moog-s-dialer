@@ -2,6 +2,7 @@ package com.moog.dialer
 
 import android.os.Bundle
 import android.telecom.Call
+import android.telecom.CallAudioState
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CallEnd
@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material3.Button
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -82,6 +81,7 @@ class InCallActivity : ComponentActivity() {
                             Call.STATE_HOLDING -> "On hold"
                             else -> "Call"
                         }
+                        val speakerAvailable = audio.availableRoutes and CallAudioState.ROUTE_SPEAKER != 0
                         Column(
                             Modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 34.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -97,6 +97,8 @@ class InCallActivity : ComponentActivity() {
                                 Text(current.number, color = CallInk, fontSize = 25.sp, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(8.dp))
                                 Text(status, color = CallMuted, fontSize = 14.sp)
+                                Spacer(Modifier.height(8.dp))
+                                Text(current.simLabel, color = CallBlue, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                             }
 
                             if (incoming) {
@@ -115,7 +117,13 @@ class InCallActivity : ComponentActivity() {
                                         RoundCallButton(if (audio.isMuted) "Unmute" else "Mute", Color(0xFFE8EDF5), if (audio.isMuted) Icons.Default.MicOff else Icons.Default.Mic, CallInk) {
                                             CallSession.toggleMute()
                                         }
-                                        RoundCallButton(if (audio.isSpeakerOn) "Speaker on" else "Speaker", Color(0xFFE8EDF5), Icons.Default.VolumeUp, CallInk) {
+                                        RoundCallButton(
+                                            if (audio.isSpeakerOn) "Speaker on" else "Speaker",
+                                            Color(0xFFE8EDF5),
+                                            Icons.Default.VolumeUp,
+                                            CallInk,
+                                            enabled = speakerAvailable
+                                        ) {
                                             CallSession.toggleSpeaker()
                                         }
                                         if (current.canHold) {
@@ -145,11 +153,13 @@ private fun RoundCallButton(
     background: Color,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     tint: Color = Color.White,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         androidx.compose.material3.FilledIconButton(
             onClick = onClick,
+            enabled = enabled,
             modifier = Modifier.size(66.dp),
             shape = CircleShape,
             colors = IconButtonDefaults.filledIconButtonColors(containerColor = background, contentColor = tint)
@@ -157,6 +167,6 @@ private fun RoundCallButton(
             androidx.compose.material3.Icon(icon, contentDescription = label, modifier = Modifier.size(25.dp))
         }
         Spacer(Modifier.height(8.dp))
-        Text(label, color = CallMuted, fontSize = 11.sp)
+        Text(label, color = if (enabled) CallMuted else CallMuted.copy(alpha = 0.45f), fontSize = 11.sp)
     }
 }
