@@ -342,33 +342,33 @@ private fun VoicemailMessageRow(
 
                 if (expanded) {
                     HorizontalDivider(color = MoogColors.separator)
-                    if (active) {
-                        Slider(
-                            value = player.progress,
-                            onValueChange = player::seekTo,
-                            valueRange = 0f..1f,
-                            modifier = Modifier.semantics { contentDescription = "Voicemail playback position" }
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(formatDuration(player.positionMs / 1000), color = MoogColors.secondaryLabel, fontSize = 10.sp)
-                            Spacer(Modifier.weight(1f))
-                            listOf(1f, 1.5f, 2f).forEach { speed ->
-                                Surface(
-                                    onClick = { player.setSpeed(speed) },
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (player.playbackSpeed == speed) MoogColors.blue.copy(alpha = 0.12f) else Color.Transparent
-                                ) {
-                                    Text(
-                                        stringResource(R.string.playback_speed, speed.toString()),
-                                        color = if (player.playbackSpeed == speed) MoogColors.blue else MoogColors.secondaryLabel,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                        fontSize = 11.sp
-                                    )
-                                }
+                    val totalDurationMs = if (active) player.durationMs else message.durationSeconds * 1000L
+                    val elapsedMs = if (active) player.positionMs else 0L
+                    Slider(
+                        value = if (active) player.progress else 0f,
+                        onValueChange = { if (active) player.seekTo(it) },
+                        valueRange = 0f..1f,
+                        modifier = Modifier.semantics { contentDescription = "Voicemail playback position" }
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(formatDuration(elapsedMs / 1000), color = MoogColors.secondaryLabel, fontSize = 10.sp)
+                        Spacer(Modifier.weight(1f))
+                        listOf(1f, 1.5f, 2f).forEach { speed ->
+                            Surface(
+                                onClick = { player.setSpeed(speed) },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (player.playbackSpeed == speed) MoogColors.blue.copy(alpha = 0.12f) else Color.Transparent
+                            ) {
+                                Text(
+                                    stringResource(R.string.playback_speed, speed.toString()),
+                                    color = if (player.playbackSpeed == speed) MoogColors.blue else MoogColors.secondaryLabel,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    fontSize = 11.sp
+                                )
                             }
-                            Spacer(Modifier.weight(1f))
-                            Text("−${formatDuration((player.durationMs - player.positionMs).coerceAtLeast(0L) / 1000)}", color = MoogColors.secondaryLabel, fontSize = 10.sp)
                         }
+                        Spacer(Modifier.weight(1f))
+                        Text("−${formatDuration((totalDurationMs - elapsedMs).coerceAtLeast(0L) / 1000)}", color = MoogColors.secondaryLabel, fontSize = 10.sp)
                     }
                     Row(
                         Modifier.fillMaxWidth(),
@@ -385,7 +385,7 @@ private fun VoicemailMessageRow(
                             onClick = onPlay
                         )
                         MoogActionRow(
-                            label = stringResource(R.string.callback),
+                            label = stringResource(R.string.call_back),
                             enabled = message.number.isNotBlank(),
                             modifier = Modifier.weight(1f),
                             leading = { Icon(Icons.Default.Call, contentDescription = null, tint = MoogColors.blue) },
