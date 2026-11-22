@@ -58,7 +58,9 @@ Windows PowerShell:
 - [x] Display the Telecom account label (SIM/carrier) associated with each call when Android exposes it
 - [x] Respect available audio routes when toggling speaker; avoid forcing earpiece when Bluetooth or wired audio is active
 - [x] Leave outgoing SIM/account selection to Android Telecom so the system can honor the user's preferred SIM or show its account chooser
-- [ ] Explicit in-app SIM preference picker and per-subscription call-log labels
+- [x] In-app preferred-SIM picker with System default / Ask every time and active SIM account choices
+- [x] Outgoing calls pass the selected Telecom PhoneAccountHandle when a preferred SIM is saved
+- [x] Recent-call rows map CallLog phone-account IDs to active SIM/carrier labels
 - [ ] Carrier-specific validation, accessibility, automated checks, device QA, and release build
 
 ## Dual-SIM and device compatibility notes
@@ -68,6 +70,10 @@ MOOG'S DIALER does not hard-code SIM slot numbers or infer a SIM from carrier na
 For incoming and ongoing calls, the app reads the call's `PhoneAccountHandle` and displays the associated Telecom `PhoneAccount` label when available. Some carriers and OEMs expose generic labels or no useful label; in those cases the UI falls back to “SIM” or “SIM not identified” rather than guessing SIM 1/SIM 2.
 
 Speaker routing follows Android's currently available audio-route mask. If Bluetooth or a wired headset is active, turning speaker off returns to an available Bluetooth/wired route before falling back to the earpiece. If the device does not expose a speaker route, the speaker control is disabled. Android Telecom remains authoritative for call state, hold support, audio routing, carrier restrictions, emergency calls, roaming, VoLTE/VoWiFi, and DSDS/DSDA behavior.
+
+Settings includes a preferred outgoing SIM selector backed by Android Telecom call-capable SIM phone accounts. The chosen account key is stored locally. If that account disappears, MOOG'S DIALER clears the stale preference and returns to Android's system default account selection. Selecting System default / Ask every time removes the account override. Incoming calls are never redirected by this preference.
+
+Recents uses the CallLog phone-account component and account ID columns to associate each historical call with the matching active Telecom SIM label. Old calls from removed SIMs or OEMs that do not expose matching identifiers show a neutral unknown/unavailable label rather than a guessed SIM number. Reading the SIM account list requires the phone-state permission; users can grant it from Settings. Without it, calls still use Android's default routing and SIM labels may be unavailable.
 
 Dual-SIM behavior still requires physical-device testing. Validate both SIMs with outgoing account selection, incoming calls on each line, data/voice concurrency, one SIM busy while the other receives a call, SIM disabled/no service, eSIM plus physical SIM, Bluetooth and wired headsets, and OEM-specific call UI restrictions. Android and carrier capabilities vary by device, region, and subscription.
 
