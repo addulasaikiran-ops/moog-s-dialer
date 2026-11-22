@@ -1,10 +1,14 @@
 package com.moog.dialer
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -19,14 +23,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Contacts
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,40 +43,42 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.moog.dialer.data.PhoneContact
+import com.moog.dialer.data.T9Search
 
-private val Canvas = Color(0xFF0D100D)
-private val SurfaceCard = Color(0xFF191E18)
-private val SurfaceRaised = Color(0xFF242B22)
-private val Accent = Color(0xFFC5F477)
-private val PrimaryText = Color(0xFFF2F4EE)
-private val SecondaryText = Color(0xFF9AA394)
-private val Hairline = Color(0xFF30382D)
+private val Page = Color(0xFFF5F6F8)
+private val Card = Color(0xFFFFFFFF)
+private val Ink = Color(0xFF17191D)
+private val Secondary = Color(0xFF858B96)
+private val Hairline = Color(0xFFE8EAF0)
+private val Blue = Color(0xFF087CFA)
+private val SoftBlue = Color(0xFFEAF3FF)
 
-private enum class Destination(val label: String) {
-    Recents("Recents"), Contacts("Contacts"), Keypad("Keypad"), Favorites("Favorites"), Settings("Settings")
+private enum class Tab(val label: String) {
+    Favorites("Favorites"), Recents("Recents"), Contacts("Contacts"), Keypad("Keypad"), Settings("Settings")
 }
-
-private data class CallEntry(val name: String, val number: String, val detail: String, val initials: String)
-private data class ContactEntry(val name: String, val number: String, val initials: String)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(
-                colorScheme = darkColorScheme(
-                    background = Canvas,
-                    surface = SurfaceCard,
-                    primary = Accent,
-                    onPrimary = Canvas,
-                    onBackground = PrimaryText,
-                    onSurface = PrimaryText
+                colorScheme = lightColorScheme(
+                    primary = Blue,
+                    onPrimary = Color.White,
+                    background = Page,
+                    surface = Card,
+                    onSurface = Ink,
+                    onBackground = Ink
                 )
             ) {
                 MoogsDialerApp(
-                    onDial = { number ->
-                        if (number.isNotBlank()) {
-                            startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${Uri.encode(number)}")))
+                    onDial = { value ->
+                        val number = value.trim()
+                        if (number.isNotEmpty()) {
+                            startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null)))
                         }
                     }
                 )
@@ -82,111 +88,114 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun MoogsDialerApp(onDial: (String) -> Unit) {
-    var destination by remember { mutableStateOf(Destination.Keypad) }
+private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: ContactsViewModel = viewModel()) {
+    var selectedTab by remember { mutableStateOf(Tab.Keypad) }
     var number by remember { mutableStateOf("") }
-    var query by remember { mutableStateOf("") }
+    var search by remember { mutableStateOf("") }
+    var hasContactsPermission by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(
+            androidx.compose.ui.platform.LocalContext.current,
+            Manifest.permission.READ_CONTACTS
+        ) == PackageManager.PERMISSION_GRANTED)
+    }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val contacts by contactsViewModel.contacts.collectAsState()
+    val loading by contactsViewModel.loading.collectAsState()
+    val favorites = remember { mutableStateListOf<Long>() }
 
-    // Live provider data is intentionally not fabricated; provider integration is the next milestone.
-    val recents = emptyList<CallEntry>()
-    val contacts = emptyList<ContactEntry>()
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasContactsPermission = granted
+        if (granted) contactsViewModel.refresh()
+    }
 
-    Column(Modifier.fillMaxSize().background(Canvas)) {
+    LaunchedEffect(hasContactsPermission) {
+        if (hasContactsPermission) contactsViewModel.refresh()
+    }
+
+    Column(Modifier.fillMaxSize().background(Page)) {
         AppHeader(
-            onSettings = { destination = Destination.Settings },
-            onSearch = { destination = Destination.Contacts }
+            onSearch = { selectedTab = Tab.Contacts },
+            onSettings = { selectedTab = Tab.Settings }
         )
-
         AnimatedContent(
-            targetState = destination,
+            targetState = selectedTab,
             modifier = Modifier.weight(1f),
             transitionSpec = { fadeIn() togetherWith fadeOut() },
-            label = "dialer-destination"
-        ) { current ->
-            when (current) {
-                Destination.Keypad -> KeypadScreen(
+            label = "main-tab"
+        ) { tab ->
+            when (tab) {
+                Tab.Keypad -> KeypadScreen(
                     number = number,
+                    contacts = if (hasContactsPermission) contacts else emptyList(),
                     onNumberChange = { number = it },
-                    onDial = { onDial(number) },
                     onDelete = { if (number.isNotEmpty()) number = number.dropLast(1) },
-                    onClear = { number = "" }
+                    onDial = { onDial(number) },
+                    onChooseContact = { number = it }
                 )
-                Destination.Recents -> ListScreen(
-                    title = "Your calls",
-                    subtitle = "The people you've connected with",
-                    query = query,
-                    onQueryChange = { query = it },
-                    placeholder = "Search recent calls",
-                    emptyTitle = "No recent calls yet",
-                    emptyBody = "Your call activity will appear here when call history is connected.",
-                    rows = recents.filter { it.name.contains(query, true) || it.number.contains(query) }.map {
-                        PersonRow(it.name, it.number, it.detail, it.initials) { number = it.number; destination = Destination.Keypad }
-                    }
+                Tab.Contacts -> ContactsScreen(
+                    contacts = contacts,
+                    loading = loading,
+                    hasPermission = hasContactsPermission,
+                    query = search,
+                    favorites = favorites,
+                    onQueryChange = { search = it },
+                    onRequestPermission = { permissionLauncher.launch(Manifest.permission.READ_CONTACTS) },
+                    onToggleFavorite = { id ->
+                        if (favorites.contains(id)) favorites.remove(id) else favorites.add(id)
+                    },
+                    onDial = onDial
                 )
-                Destination.Contacts -> ListScreen(
-                    title = "People",
-                    subtitle = "Your circle, all in one place",
-                    query = query,
-                    onQueryChange = { query = it },
-                    placeholder = "Search people",
-                    emptyTitle = "No matching contacts",
-                    emptyBody = "Try another name or number.",
-                    rows = contacts.filter { it.name.contains(query, true) || it.number.contains(query) }.map {
-                        PersonRow(it.name, it.number, "Contact", it.initials) { number = it.number; destination = Destination.Keypad }
-                    }
+                Tab.Favorites -> FavoritesScreen(
+                    contacts = contacts.filter { favorites.contains(it.id) },
+                    hasPermission = hasContactsPermission,
+                    onRequestPermission = { permissionLauncher.launch(Manifest.permission.READ_CONTACTS) },
+                    onDial = onDial
                 )
-                Destination.Favorites -> ListScreen(
-                    title = "Favorites",
-                    subtitle = "Your people, one tap away",
-                    query = query,
-                    onQueryChange = { query = it },
-                    placeholder = "Search favorites",
-                    emptyTitle = "Make room for your favorites",
-                    emptyBody = "Favorite contacts will be easy to reach from this screen.",
-                    rows = emptyList()
-                )
-                Destination.Settings -> SettingsScreen()
+                Tab.Recents -> RecentsScreen()
+                Tab.Settings -> SettingsScreen()
             }
         }
-
-        BottomNavigation(destination = destination, onSelect = {
-            destination = it
-            query = ""
+        BottomTabs(selected = selectedTab, onSelect = {
+            selectedTab = it
+            search = ""
         })
     }
 }
 
 @Composable
-private fun AppHeader(onSettings: () -> Unit, onSearch: () -> Unit) {
+private fun AppHeader(onSearch: () -> Unit, onSettings: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().statusBarsPadding().padding(start = 22.dp, end = 16.dp, top = 18.dp, bottom = 18.dp),
+        Modifier.fillMaxWidth().statusBarsPadding().background(Card).padding(horizontal = 22.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
-            Text("moog's dialer", color = PrimaryText, fontSize = 24.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.7).sp)
-            Text("CALL YOUR WORLD", color = Accent, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.4.sp)
+            Text("moog's dialer", color = Ink, fontSize = 23.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.7).sp)
+            Text("A BETTER WAY TO CONNECT", color = Secondary, fontSize = 9.sp, letterSpacing = 1.4.sp, fontWeight = FontWeight.Medium)
         }
-        HeaderAction(Icons.Default.Search, "Search contacts", onSearch)
+        HeaderButton(Icons.Default.Search, "Search", onSearch)
         Spacer(Modifier.width(8.dp))
-        HeaderAction(Icons.Default.Settings, "Settings", onSettings)
+        HeaderButton(Icons.Default.Settings, "Settings", onSettings)
     }
 }
 
 @Composable
-private fun HeaderAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+private fun HeaderButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
     Box(
-        Modifier.size(42.dp).clip(CircleShape).background(SurfaceCard).clickable(onClick = onClick),
+        Modifier.size(40.dp).clip(CircleShape).background(Page).clickable(onClick = onClick),
         contentAlignment = Alignment.Center
-    ) { Icon(icon, contentDescription = label, tint = SecondaryText, modifier = Modifier.size(19.dp)) }
+    ) { Icon(icon, contentDescription = label, tint = Ink, modifier = Modifier.size(19.dp)) }
 }
 
 @Composable
 private fun KeypadScreen(
     number: String,
+    contacts: List<PhoneContact>,
     onNumberChange: (String) -> Unit,
-    onDial: () -> Unit,
     onDelete: () -> Unit,
-    onClear: () -> Unit
+    onDial: () -> Unit,
+    onChooseContact: (String) -> Unit
 ) {
     val keys = listOf(
         listOf("1" to "", "2" to "ABC", "3" to "DEF"),
@@ -194,14 +203,15 @@ private fun KeypadScreen(
         listOf("7" to "PQRS", "8" to "TUV", "9" to "WXYZ"),
         listOf("*" to "", "0" to "+", "#" to "")
     )
+    val suggestions = remember(number, contacts) {
+        if (number.isBlank()) emptyList()
+        else contacts.filter { T9Search.matches(it, number) }.take(3)
+    }
 
-    Column(
-        Modifier.fillMaxSize().padding(horizontal = 25.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(Modifier.weight(0.35f))
-        Text("READY WHEN YOU ARE", color = SecondaryText, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 2.2.sp)
-        Spacer(Modifier.height(13.dp))
+    Column(Modifier.fillMaxSize().padding(horizontal = 26.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Spacer(Modifier.height(20.dp))
+        Text("KEYPAD", color = Secondary, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth().height(54.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 BasicTextField(
@@ -210,172 +220,292 @@ private fun KeypadScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    textStyle = TextStyle(color = PrimaryText, fontSize = 30.sp, textAlign = TextAlign.Center, letterSpacing = 1.sp),
+                    textStyle = TextStyle(color = Ink, fontSize = 30.sp, textAlign = TextAlign.Center, letterSpacing = 1.sp),
                     decorationBox = { inner ->
                         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            if (number.isEmpty()) Text("Enter a number", color = SecondaryText.copy(alpha = 0.55f), fontSize = 23.sp)
+                            if (number.isEmpty()) Text("Enter a number", color = Secondary.copy(alpha = 0.65f), fontSize = 23.sp)
                             inner()
                         }
                     }
                 )
             }
             if (number.isNotEmpty()) {
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Backspace, "Delete", tint = SecondaryText) }
-                Text("Clear", color = Accent, fontSize = 11.sp, modifier = Modifier.clickable(onClick = onClear).padding(start = 4.dp))
+                IconButton(onClick = onDelete) { Icon(Icons.Default.Backspace, "Delete", tint = Secondary) }
             }
         }
-        Spacer(Modifier.height(20.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            keys.forEach { row ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    row.forEach { (digit, letters) ->
-                        Column(
-                            Modifier.weight(1f).height(67.dp).clip(RoundedCornerShape(22.dp))
-                                .background(SurfaceCard).clickable { onNumberChange(number + digit) },
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(digit, color = PrimaryText, fontSize = 26.sp, fontWeight = FontWeight.Medium)
-                            if (letters.isNotEmpty()) Text(letters, color = SecondaryText, fontSize = 8.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
+        if (suggestions.isNotEmpty()) {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Card)) {
+                suggestions.forEach { contact ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { onChooseContact(contact.phoneNumber) }.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Avatar(contact.displayName)
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text(contact.displayName, color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text(contact.phoneNumber, color = Secondary, fontSize = 11.sp)
                         }
                     }
                 }
             }
         }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.weight(1f))
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            keys.forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    row.forEach { (digit, letters) ->
+                        Column(
+                            Modifier.weight(1f).height(66.dp).clip(CircleShape).background(Card)
+                                .clickable { onNumberChange(number + digit) },
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(digit, color = Ink, fontSize = 26.sp, fontWeight = FontWeight.Normal)
+                            if (letters.isNotEmpty()) Text(letters, color = Secondary, fontSize = 8.sp, letterSpacing = 1.5.sp)
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(18.dp))
         Box(
-            Modifier.size(64.dp).clip(CircleShape).background(Accent).clickable(onClick = onDial),
+            Modifier.size(62.dp).clip(CircleShape).background(Blue).clickable(onClick = onDial),
             contentAlignment = Alignment.Center
-        ) { Icon(Icons.Default.Call, contentDescription = "Open system dialer", tint = Canvas, modifier = Modifier.size(27.dp)) }
-        Spacer(Modifier.weight(0.45f))
+        ) { Icon(Icons.Default.Call, contentDescription = "Open phone dialer", tint = Color.White, modifier = Modifier.size(25.dp)) }
+        Spacer(Modifier.height(20.dp))
     }
 }
 
 @Composable
-private fun ListScreen(
-    title: String,
-    subtitle: String,
+private fun ContactsScreen(
+    contacts: List<PhoneContact>,
+    loading: Boolean,
+    hasPermission: Boolean,
     query: String,
+    favorites: List<Long>,
     onQueryChange: (String) -> Unit,
-    placeholder: String,
-    emptyTitle: String,
-    emptyBody: String,
-    rows: List<@Composable () -> Unit>
+    onRequestPermission: () -> Unit,
+    onToggleFavorite: (Long) -> Unit,
+    onDial: (String) -> Unit
 ) {
-    Column(Modifier.fillMaxSize().padding(horizontal = 22.dp)) {
-        Text(title, color = PrimaryText, fontSize = 29.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.8).sp)
-        Spacer(Modifier.height(4.dp))
-        Text(subtitle, color = SecondaryText, fontSize = 12.sp)
-        Spacer(Modifier.height(22.dp))
-        Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(SurfaceCard).padding(horizontal = 14.dp, vertical = 13.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Default.Search, null, tint = SecondaryText, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(10.dp))
-            BasicTextField(
-                value = query, onValueChange = onQueryChange, singleLine = true,
-                textStyle = TextStyle(color = PrimaryText, fontSize = 14.sp),
-                decorationBox = { inner ->
-                    Box {
-                        if (query.isEmpty()) Text(placeholder, color = SecondaryText, fontSize = 14.sp)
-                        inner()
-                    }
-                }
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+        ScreenTitle("Contacts", "Your people, all in one place")
+        if (!hasPermission) {
+            PermissionCard(
+                title = "Connect your contacts",
+                body = "Allow access to show and search the contacts stored on this phone. Your contacts stay on your device.",
+                button = "Allow contacts access",
+                onClick = onRequestPermission
             )
-        }
-        Spacer(Modifier.height(14.dp))
-        if (rows.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(bottom = 55.dp)) {
-                    Box(Modifier.size(62.dp).clip(CircleShape).background(SurfaceCard), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Contacts, null, tint = Accent, modifier = Modifier.size(25.dp))
-                    }
-                    Spacer(Modifier.height(15.dp))
-                    Text(emptyTitle, color = PrimaryText, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                    Spacer(Modifier.height(6.dp))
-                    Text(emptyBody, color = SecondaryText, fontSize = 12.sp, textAlign = TextAlign.Center, lineHeight = 18.sp)
-                }
-            }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                items(rows.size) { index -> rows[index]() }
+            SearchField(query, onQueryChange, "Search by name or number")
+            Spacer(Modifier.height(12.dp))
+            val filtered = contacts.filter { T9Search.matches(it, query) }
+            when {
+                loading -> CenterMessage("Loading contacts…", "Your address book is being read on this device.")
+                filtered.isEmpty() -> CenterMessage(
+                    if (query.isBlank()) "No phone contacts found" else "No matches found",
+                    if (query.isBlank()) "Contacts with phone numbers will appear here." else "Try another name or number."
+                )
+                else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    items(filtered, key = { "${it.id}-${it.phoneNumber}" }) { contact ->
+                        ContactRow(
+                            contact = contact,
+                            favorite = favorites.contains(contact.id),
+                            onFavorite = { onToggleFavorite(contact.id) },
+                            onDial = { onDial(contact.phoneNumber) }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun PersonRow(name: String, number: String, detail: String, initials: String, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(vertical = 11.dp, horizontal = 3.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(Modifier.size(46.dp).clip(CircleShape).background(SurfaceRaised), contentAlignment = Alignment.Center) {
-            Text(initials, color = Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+private fun FavoritesScreen(
+    contacts: List<PhoneContact>,
+    hasPermission: Boolean,
+    onRequestPermission: () -> Unit,
+    onDial: (String) -> Unit
+) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+        ScreenTitle("Favorites", "The people you reach most")
+        when {
+            !hasPermission -> PermissionCard(
+                "Your favorites start with contacts",
+                "Allow contacts access to choose people for your favorites.",
+                "Allow contacts access",
+                onRequestPermission
+            )
+            contacts.isEmpty() -> CenterMessage("No favorites yet", "Open Contacts and tap the star beside someone to add them here.")
+            else -> LazyColumn {
+                items(contacts, key = { "${it.id}-${it.phoneNumber}" }) { contact ->
+                    ContactRow(contact, favorite = true, onFavorite = {}, onDial = { onDial(contact.phoneNumber) }, showFavorite = false)
+                }
+            }
         }
-        Spacer(Modifier.width(13.dp))
-        Column(Modifier.weight(1f)) {
-            Text(name, color = PrimaryText, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(3.dp))
-            Text("$number  ·  $detail", color = SecondaryText, fontSize = 11.sp)
-        }
-        Icon(Icons.Default.Call, contentDescription = "Select number", tint = Accent, modifier = Modifier.padding(10.dp).size(18.dp))
     }
-    HorizontalDivider(color = Hairline.copy(alpha = 0.65f), thickness = 0.6.dp)
+}
+
+@Composable
+private fun RecentsScreen() {
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+        ScreenTitle("Recents", "Your recent calls")
+        CenterMessage("Your call history will appear here", "Call history access will be connected after MOOG'S DIALER is configured for Android's Phone role.")
+    }
 }
 
 @Composable
 private fun SettingsScreen() {
-    Column(Modifier.fillMaxSize().padding(horizontal = 22.dp)) {
-        Text("A little personal", color = PrimaryText, fontSize = 29.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.8).sp)
-        Spacer(Modifier.height(4.dp))
-        Text("Make your calling experience yours", color = SecondaryText, fontSize = 12.sp)
-        Spacer(Modifier.height(24.dp))
-        SettingRow("Appearance", "Graphite and lime · Signature theme")
-        SettingRow("Calling", "System phone app handoff")
-        SettingRow("Privacy", "Permissions and data controls")
-        SettingRow("About moog's dialer", "Version 0.1.0 · Built with care")
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+        ScreenTitle("Settings", "Make calling feel like yours")
+        SettingsRow("Appearance", "iPhone-inspired light interface")
+        SettingsRow("Contacts", "On-device contact access")
+        SettingsRow("Calling", "System dialer handoff is enabled")
+        SettingsRow("Privacy", "No account or cloud contact sync")
+        SettingsRow("About", "MOOG'S DIALER · Version 0.2.0")
         Spacer(Modifier.height(18.dp))
-        Text("MOOG'S DIALER IS A WORK IN PROGRESS", color = Accent, fontSize = 9.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.Bold)
+        Text("BUILT FOR YOUR EVERYDAY CONNECTIONS", color = Blue, fontSize = 10.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
-        Text("Contacts, call history, and full default-phone functionality will be connected in upcoming development milestones.", color = SecondaryText, fontSize = 12.sp, lineHeight = 18.sp)
+        Text("This app reads contacts only after you grant permission. Call history and full in-call controls are planned for the Telecom integration milestone.", color = Secondary, fontSize = 12.sp, lineHeight = 18.sp)
     }
 }
 
 @Composable
-private fun SettingRow(title: String, detail: String) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 15.dp)) {
-        Text(title, color = PrimaryText, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(4.dp))
-        Text(detail, color = SecondaryText, fontSize = 11.sp)
-    }
-    HorizontalDivider(color = Hairline, thickness = 0.7.dp)
+private fun ScreenTitle(title: String, subtitle: String) {
+    Spacer(Modifier.height(14.dp))
+    Text(title, color = Ink, fontSize = 30.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.9).sp)
+    Spacer(Modifier.height(3.dp))
+    Text(subtitle, color = Secondary, fontSize = 13.sp)
+    Spacer(Modifier.height(20.dp))
 }
 
 @Composable
-private fun BottomNavigation(destination: Destination, onSelect: (Destination) -> Unit) {
+private fun SearchField(value: String, onValueChange: (String) -> Unit, placeholder: String) {
     Row(
-        Modifier.fillMaxWidth().navigationBarsPadding().background(SurfaceCard).padding(horizontal = 5.dp, vertical = 9.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFFE9EBEF)).padding(horizontal = 13.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Default.Search, contentDescription = null, tint = Secondary, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            textStyle = TextStyle(color = Ink, fontSize = 14.sp),
+            decorationBox = { inner ->
+                Box {
+                    if (value.isEmpty()) Text(placeholder, color = Secondary, fontSize = 14.sp)
+                    inner()
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun ContactRow(
+    contact: PhoneContact,
+    favorite: Boolean,
+    onFavorite: () -> Unit,
+    onDial: () -> Unit,
+    showFavorite: Boolean = true
+) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(horizontal = 11.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Avatar(contact.displayName)
+        Spacer(Modifier.width(11.dp))
+        Column(Modifier.weight(1f)) {
+            Text(contact.displayName, color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(2.dp))
+            Text(contact.phoneNumber, color = Secondary, fontSize = 12.sp)
+        }
+        if (showFavorite) {
+            IconButton(onClick = onFavorite) {
+                Icon(Icons.Default.Favorite, contentDescription = if (favorite) "Remove favorite" else "Add favorite",
+                    tint = if (favorite) Blue else Secondary.copy(alpha = 0.6f), modifier = Modifier.size(19.dp))
+            }
+        }
+        IconButton(onClick = onDial) {
+            Icon(Icons.Default.Call, contentDescription = "Call ${contact.displayName}", tint = Blue, modifier = Modifier.size(19.dp))
+        }
+    }
+}
+
+@Composable
+private fun Avatar(name: String) {
+    val initials = name.trim().split(Regex("\\s+")).take(2).mapNotNull { it.firstOrNull()?.toString() }.joinToString("").uppercase()
+    Box(Modifier.size(42.dp).clip(CircleShape).background(SoftBlue), contentAlignment = Alignment.Center) {
+        Text(initials.ifBlank { "?" }, color = Blue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun PermissionCard(title: String, body: String, button: String, onClick: () -> Unit) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Card).padding(20.dp)) {
+        Icon(Icons.Default.Contacts, contentDescription = null, tint = Blue, modifier = Modifier.size(26.dp))
+        Spacer(Modifier.height(12.dp))
+        Text(title, color = Ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(6.dp))
+        Text(body, color = Secondary, fontSize = 13.sp, lineHeight = 19.sp)
+        Spacer(Modifier.height(16.dp))
+        Button(onClick = onClick, shape = RoundedCornerShape(12.dp)) { Text(button) }
+    }
+}
+
+@Composable
+private fun CenterMessage(title: String, body: String) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(Modifier.padding(horizontal = 30.dp).offset(y = (-24).dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.size(62.dp).clip(CircleShape).background(SoftBlue), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.Person, contentDescription = null, tint = Blue, modifier = Modifier.size(27.dp))
+            }
+            Spacer(Modifier.height(15.dp))
+            Text(title, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(6.dp))
+            Text(body, color = Secondary, fontSize = 12.sp, lineHeight = 18.sp, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+@Composable
+private fun SettingsRow(title: String, detail: String) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 15.dp)) {
+        Text(title, color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(4.dp))
+        Text(detail, color = Secondary, fontSize = 12.sp)
+    }
+    HorizontalDivider(color = Hairline, thickness = 0.8.dp)
+}
+
+@Composable
+private fun BottomTabs(selected: Tab, onSelect: (Tab) -> Unit) {
+    val tabItems = listOf(
+        Tab.Favorites to Icons.Default.Favorite,
+        Tab.Recents to Icons.Default.History,
+        Tab.Contacts to Icons.Default.Person,
+        Tab.Keypad to Icons.Default.Contacts,
+        Tab.Settings to Icons.Default.Settings
+    )
+    Row(
+        Modifier.fillMaxWidth().navigationBarsPadding().background(Card).padding(horizontal = 5.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val items = listOf(
-            Destination.Recents to Icons.Default.History,
-            Destination.Contacts to Icons.Default.Contacts,
-            Destination.Keypad to Icons.Default.Call,
-            Destination.Favorites to Icons.Default.Star,
-            Destination.Settings to Icons.Default.MoreHoriz
-        )
-        items.forEach { (item, icon) ->
-            val selected = destination == item
+        tabItems.forEach { (tab, icon) ->
+            val active = selected == tab
             Column(
-                Modifier.weight(1f).clip(RoundedCornerShape(13.dp)).clickable { onSelect(item) }.padding(vertical = 5.dp),
+                Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { onSelect(tab) }.padding(vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(icon, contentDescription = item.label, tint = if (selected) Accent else SecondaryText, modifier = Modifier.size(20.dp))
+                Icon(icon, contentDescription = tab.label, tint = if (active) Blue else Secondary, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.height(3.dp))
-                Text(item.label, color = if (selected) Accent else SecondaryText, fontSize = 9.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+                Text(tab.label, color = if (active) Blue else Secondary, fontSize = 9.sp, fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal)
             }
         }
     }
