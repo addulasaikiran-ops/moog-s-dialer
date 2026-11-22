@@ -165,4 +165,10 @@
     <string name="delete_last_digit">Delete last digit</string>
     <string name="loading_contacts">Loading contacts…</string>
     <string name="your_address_book_is_being_read_on_this_device">Your address book is being read on this device.</string>
+    <string name="the_people_you_reach_most">The people you reach most</string>
+    <string name="android_protects_call_history_moog_s_dialer_can_">Android protects call history. MOOG&apos;S DIALER can show it only after it is eligible for and selected as the default Phone app. Incoming and ongoing call screens are still part of that setup.</string>
+    <string name="more_call_filters">More call filters</string>
+    <string name="back_to_contacts">Back to contacts</string>
+    <string name="message_this_number">Message this number</string>
+    <string name="call_this_number">Call this number</string>
 </resources>
