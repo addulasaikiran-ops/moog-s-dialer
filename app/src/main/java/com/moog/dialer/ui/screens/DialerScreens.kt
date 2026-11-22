@@ -111,8 +111,11 @@ fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, contactsView
     var number by remember { mutableStateOf(initialNumber) }
     var search by remember { mutableStateOf("") }
     var selectedContactId by remember { mutableStateOf<Long?>(null) }
+    var selectedRecentCall by remember { mutableStateOf<RecentCall?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
-    BackHandler(enabled = selectedContactId != null) { selectedContactId = null }
+    BackHandler(enabled = selectedContactId != null || selectedRecentCall != null) {
+        if (selectedRecentCall != null) selectedRecentCall = null else selectedContactId = null
+    }
     var hasContactsPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(
             context,
@@ -227,7 +230,20 @@ fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, contactsView
     }
 
     Column(Modifier.fillMaxSize().background(MoogColors.background)) {
-        AnimatedContent(
+        if (selectedRecentCall != null) {
+            Box(Modifier.weight(1f)) {
+                CallDetailScreen(
+                    call = selectedRecentCall!!,
+                    onBack = { selectedRecentCall = null },
+                    onDial = onDial,
+                    onMessage = { phoneNumber ->
+                        if (phoneNumber.isNotBlank()) {
+                            context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", phoneNumber, null)))
+                        }
+                    }
+                )
+            }
+        } else AnimatedContent(
             targetState = selectedTab,
             modifier = Modifier.weight(1f),
             transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -285,7 +301,8 @@ fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, contactsView
                     isDefaultDialer = isDefaultDialer,
                     hasPermission = hasCallLogPermission,
                     onRequestPermission = { callLogPermissionLauncher.launch(Manifest.permission.READ_CALL_LOG) },
-                    onDial = onDial
+                    onDial = onDial,
+                    onOpenDetails = { selectedRecentCall = it }
                 )
                 Tab.Settings -> SettingsScreen(
                     isDefaultDialer = isDefaultDialer,
@@ -336,10 +353,11 @@ fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, contactsView
                 )
             }
         }
-        if (selectedContactId == null) {
+        if (selectedContactId == null && selectedRecentCall == null) {
             BottomTabs(selected = selectedTab, onSelect = {
                 selectedTab = it
                 selectedContactId = null
+                selectedRecentCall = null
                 search = ""
             })
         }
