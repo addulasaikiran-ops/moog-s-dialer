@@ -1,6 +1,7 @@
 package com.moog.dialer
 
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -133,7 +134,7 @@ private fun VoicemailScreen(onBack: () -> Unit) {
         ) {
             item {
                 Text(
-                    if (unreadCount == 0) "Your voicemail inbox" else "$unreadCount unread messages",
+                    if (unreadCount == 0) stringResource(R.string.your_voicemail_inbox) else pluralStringResource(R.plurals.unread_voicemail_count, unreadCount, unreadCount),
                     color = MoogColors.secondaryLabel,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
@@ -244,10 +245,10 @@ private fun VoicemailScreen(onBack: () -> Unit) {
                             val value = perSimNumbers[account.key].orEmpty()
                             OutlinedTextField(value = value, onValueChange = { perSimNumbers = perSimNumbers + (account.key to it) }, modifier = Modifier.fillMaxWidth(), label = { Text(account.label) }, singleLine = true)
                             OutlinedButton(onClick = { VoicemailRepository.saveNumber(context, account.key, value) }, modifier = Modifier.fillMaxWidth(), enabled = value.isNotBlank()) {
-                                Text("Save for " + account.label)
+                                Text(stringResource(R.string.save_for_sim, account.label))
                             }
                             OutlinedButton(onClick = { openVoicemailCall(context, value, account) }, modifier = Modifier.fillMaxWidth(), enabled = value.isNotBlank()) {
-                                Text("Call using " + account.label)
+                                Text(stringResource(R.string.call_using_sim, account.label))
                             }
                         }
                     }
@@ -292,8 +293,8 @@ private fun VoicemailMessageCard(
             }
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text(message.number.ifBlank { "Unknown caller" }, color = MoogColors.label, fontSize = 14.sp, fontWeight = if (message.isRead) FontWeight.Medium else FontWeight.Bold)
-                Text(time + " · " + formatDuration(message.durationSeconds) + " · " + message.accountLabel, color = MoogColors.secondaryLabel, fontSize = 10.sp)
+                Text(message.number.ifBlank { stringResource(R.string.unknown_caller) }, color = MoogColors.label, fontSize = 14.sp, fontWeight = if (message.isRead) FontWeight.Medium else FontWeight.Bold)
+                Text(stringResource(R.string.voicemail_message_metadata, time, formatDuration(message.durationSeconds), message.accountLabel), color = MoogColors.secondaryLabel, fontSize = 10.sp)
             }
             if (!message.isRead) Box(
                 Modifier.size(7.dp).clip(CircleShape).background(MoogColors.blue)
@@ -312,7 +313,7 @@ private fun VoicemailMessageCard(
                 Spacer(Modifier.weight(1f))
                 listOf(1f, 1.5f, 2f).forEach { speed ->
                     TextButton(onClick = { player.setSpeed(speed) }, contentPadding = PaddingValues(horizontal = 5.dp)) {
-                        Text(speed.toString() + "x", color = if (player.playbackSpeed == speed) MoogColors.blue else MoogColors.secondaryLabel, fontSize = 10.sp)
+                        Text(stringResource(R.string.playback_speed, speed.toString()), color = if (player.playbackSpeed == speed) MoogColors.blue else MoogColors.secondaryLabel, fontSize = 10.sp)
                     }
                 }
                 Text(formatDuration(player.durationMs / 1000), color = MoogColors.secondaryLabel, fontSize = 10.sp)
@@ -322,11 +323,11 @@ private fun VoicemailMessageCard(
             Button(onClick = onPlay, enabled = message.hasContent, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
                 Icon(if (active && player.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = null)
                 Spacer(Modifier.width(5.dp))
-                Text(if (!message.hasContent) "Audio unavailable" else if (active && player.isPlaying) "Pause" else "Play")
+                Text(if (!message.hasContent) stringResource(R.string.audio_unavailable) else if (active && player.isPlaying) stringResource(R.string.pause) else stringResource(R.string.play))
             }
             TextButton(onClick = onCallback, enabled = message.number.isNotBlank()) { Text(stringResource(R.string.callback)) }
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = onToggleRead) { Text(if (message.isRead) "Mark unread" else "Mark read") }
+            TextButton(onClick = onToggleRead) { Text(if (message.isRead) stringResource(R.string.mark_unread) else stringResource(R.string.mark_read)) }
             IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_voicemail), tint = MoogColors.secondaryLabel) }
         }
         if (!message.hasContent) Text(stringResource(R.string.voicemail_audio_not_available), color = MoogColors.secondaryLabel, fontSize = 10.sp)
