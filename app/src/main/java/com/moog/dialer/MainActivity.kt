@@ -60,6 +60,8 @@ import com.moog.dialer.data.PhoneContact
 import com.moog.dialer.data.T9Search
 import com.moog.dialer.data.CallLogRepository
 import com.moog.dialer.data.RecentCall
+import com.moog.dialer.data.PhoneAccountOption
+import com.moog.dialer.data.PhoneAccountRepository
 
 private fun isMoogDefaultPhoneApp(context: Context): Boolean {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -103,8 +105,12 @@ class MainActivity : ComponentActivity() {
                             val isDefaultDialer = isMoogDefaultPhoneApp(this@MainActivity)
                             if (isDefaultDialer) {
                                 try {
+                                    val extras = Bundle()
+                                    PhoneAccountRepository.getPreferredHandle(this@MainActivity)?.let { handle ->
+                                        extras.putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, handle)
+                                    }
                                     getSystemService(TelecomManager::class.java)
-                                        .placeCall(Uri.fromParts("tel", number, null), Bundle())
+                                        .placeCall(Uri.fromParts("tel", number, null), extras)
                                 } catch (_: SecurityException) {
                                     startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null)))
                                 }
@@ -139,6 +145,9 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
             isMoogDefaultPhoneApp(context)
         )
     }
+    var hasPhoneStatePermission by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) }
+    var phoneAccounts by remember { mutableStateOf<List<PhoneAccountOption>>(emptyList()) }
+    var selectedPhoneAccountKey by remember { mutableStateOf(PhoneAccountRepository.getPreferredAccountKey(context)) }
     var hasCallLogPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED)
     }
@@ -162,6 +171,11 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
             .orEmpty()
             .mapNotNull { it.toLongOrNull() }
         mutableStateListOf<Long>().apply { addAll(saved) }
+    }
+
+    val phoneStatePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        hasPhoneStatePermission = granted
+        if (granted) phoneAccounts = PhoneAccountRepository.getCallAccounts(context)
     }
 
     val callLogPermissionLauncher = rememberLauncherForActivityResult(
@@ -193,7 +207,15 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
         if (hasContactsPermission) contactsViewModel.refresh()
     }
 
-    LaunchedEffect(selectedTab) {
+    LaunchedEffect(selectedTab, hasPhoneStatePermission) {
+        if ((selectedTab == Tab.Settings || selectedTab == Tab.Recents) && hasPhoneStatePermission) {
+            phoneAccounts = PhoneAccountRepository.getCallAccounts(context)
+            val activeKeys = phoneAccounts.map { it.key }.toSet()
+            if (selectedPhoneAccountKey != null && selectedPhoneAccountKey !in activeKeys) {
+                selectedPhoneAccountKey = null
+                PhoneAccountRepository.savePreferredAccount(context, null)
+            }
+        }
         if (selectedTab == Tab.Recents) {
             isDefaultDialer = isMoogDefaultPhoneApp(context)
         }
@@ -203,7 +225,7 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
         if (selectedTab == Tab.Recents && isDefaultDialer && hasCallLogPermission) {
             loadingRecentCalls = true
             try {
-                recentCalls = CallLogRepository(context.contentResolver).getRecentCalls()
+                recentCalls = CallLogRepository(context.contentResolver, if (hasPhoneStatePermission) PhoneAccountRepository.getAccountLabels(context) else emptyMap()).getRecentCalls()
             } catch (_: SecurityException) {
                 hasCallLogPermission = false
                 recentCalls = emptyList()
@@ -278,6 +300,16 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
                     isDefaultDialer = isDefaultDialer,
                     hasNotificationPermission = hasNotificationPermission,
                     canUseFullScreenIntent = canUseFullScreenIntent,
+                    hasPhoneStatePermission = hasPhoneStatePermission,
+                    phoneAccounts = phoneAccounts,
+                    selectedPhoneAccountKey = selectedPhoneAccountKey,
+                    onSelectPhoneAccount = { key ->
+                        selectedPhoneAccountKey = key
+                        PhoneAccountRepository.savePreferredAccount(context, key)
+                    },
+                    onRequestPhoneState = {
+                        phoneStatePermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
+                    },
                     onRequestPhoneRole = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                             val manager = context.getSystemService(RoleManager::class.java)
@@ -615,6 +647,7 @@ private fun RecentCallRow(call: RecentCall, onDial: () -> Unit) {
             Text(call.displayName.ifBlank { call.number.ifBlank { "Unknown number" } }, color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(3.dp))
             Text("${callType} · ${relativeTime}", color = callColor, fontSize = 11.sp)
+            Text(call.simLabel, color = Secondary, fontSize = 10.sp)
         }
         Column(horizontalAlignment = Alignment.End) {
             if (call.durationSeconds > 0) {
@@ -628,10 +661,55 @@ private fun RecentCallRow(call: RecentCall, onDial: () -> Unit) {
 }
 
 @Composable
+private fun SimPreferencePicker(
+    phoneAccounts: List<PhoneAccountOption>,
+    selectedKey: String?,
+    onSelect: (String?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedLabel = if (selectedKey == null) "System default / Ask every time"
+        else phoneAccounts.firstOrNull { it.key == selectedKey }?.label ?: "System default / Ask every time"
+
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Card).padding(14.dp)) {
+        Text("Preferred SIM for outgoing calls", color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(4.dp))
+        Text("Incoming calls always follow the SIM that receives them.", color = Secondary, fontSize = 11.sp)
+        Spacer(Modifier.height(10.dp))
+        Box {
+            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(selectedLabel, modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
+                Text("⌄", color = Secondary)
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenuItem(
+                    text = { Text("System default / Ask every time") },
+                    onClick = { onSelect(null); expanded = false }
+                )
+                phoneAccounts.forEach { account ->
+                    DropdownMenuItem(
+                        text = { Text(account.label) },
+                        onClick = { onSelect(account.key); expanded = false }
+                    )
+                }
+            }
+        }
+        if (phoneAccounts.isEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text("No SIM calling accounts are currently exposed by Android.", color = Secondary, fontSize = 11.sp)
+        }
+    }
+}
+
+@Composable
 private fun SettingsScreen(
     isDefaultDialer: Boolean,
     hasNotificationPermission: Boolean,
     canUseFullScreenIntent: Boolean,
+    hasPhoneStatePermission: Boolean,
+    phoneAccounts: List<PhoneAccountOption>,
+    selectedPhoneAccountKey: String?,
+    onSelectPhoneAccount: (String?) -> Unit,
+    onRequestPhoneState: () -> Unit,
     onRequestPhoneRole: () -> Unit,
     onRequestNotifications: () -> Unit,
     onRequestFullScreenIntent: () -> Unit
@@ -659,6 +737,19 @@ private fun SettingsScreen(
             }
             Spacer(Modifier.height(10.dp))
         }
+        Text("CALLING SIM", color = Secondary, fontSize = 10.sp, letterSpacing = 1.4.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(8.dp))
+        if (!hasPhoneStatePermission) {
+            PermissionCard(
+                "Choose a calling SIM",
+                "Allow phone-state access so MOOG'S DIALER can list SIM calling accounts registered with Android. Your selection stays on this device.",
+                "Allow SIM access",
+                onRequestPhoneState
+            )
+        } else {
+            SimPreferencePicker(phoneAccounts, selectedPhoneAccountKey, onSelectPhoneAccount)
+        }
+        Spacer(Modifier.height(14.dp))
         SettingsRow("Appearance", "iPhone-inspired light interface")
         SettingsRow("Contacts", "On-device contact access")
         SettingsRow("Calling", "Telecom calling with system dialer fallback")
