@@ -84,7 +84,7 @@
     <string name="inbox_clear">Your inbox is clear</string>
     <string name="inbox_sync_hint">When a supported voicemail source syncs a message, it will show up here.</string>
     <string name="carrier_mailbox_fallback">Carrier mailbox fallback</string>
-    <string name="save_voicemail_number_hint">Save the voicemail access number supplied by your carrier. MOOG does not guess a carrier code.</string>
+    <string name="save_voicemail_number_hint">Save the voicemail access number supplied by your carrier. MOOG does not guess carrier codes.</string>
     <string name="default_voicemail_number">Default voicemail number</string>
     <string name="save_voicemail_number">Save voicemail number</string>
     <string name="call_voicemail">Call voicemail</string>
@@ -234,4 +234,11 @@
     <string name="duration_minutes_seconds">%1$d:%2$02d</string>
     <string name="open_moog_to_view_voicemail">Open MOOG&apos;S DIALER to view your voicemail inbox.</string>
     <string name="contact_information_for">Contact information for %1$s</string>
+    <string name="voicemail_settings">Voicemail Settings</string>
+    <string name="delete_voicemail_title">Delete voicemail?</string>
+    <string name="delete_voicemail_confirmation">This voicemail will be deleted from the device voicemail provider. This action cannot be undone.</string>
+    <string name="enter_voicemail_number">Enter carrier voicemail number</string>
+    <string name="voicemail_sim_numbers_explanation">Numbers are stored on this device and are used only when you choose to call that SIM mailbox.</string>
+    <string name="no_sim_accounts_available">Android is not exposing any SIM calling accounts.</string>
+    <string name="custom_voicemail_server_honesty">The server is not connected. No custom voicemail is being received or stored.</string>
 </resources>
