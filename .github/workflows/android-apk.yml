@@ -32,10 +32,21 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Accept Android SDK licenses and install SDK 35
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 12266719
+          packages: platform-tools
+
+      - name: Install Android SDK 35
         run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          if [ -z "$SDKMANAGER" ]; then
+            echo "Android SDK manager was not found."
+            exit 1
+          fi
+          yes | "$SDKMANAGER" --licenses
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Make Gradle wrapper executable
         run: |
