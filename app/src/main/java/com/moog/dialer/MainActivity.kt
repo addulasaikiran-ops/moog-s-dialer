@@ -1,6 +1,7 @@
 package com.moog.dialer
 
 import android.Manifest
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.Context
 import android.content.pm.PackageManager
@@ -8,6 +9,7 @@ import android.app.role.RoleManager
 import android.telecom.TelecomManager
 import android.os.Build
 import android.provider.CallLog
+import android.provider.Settings
 import android.text.format.DateUtils
 import android.net.Uri
 import android.os.Bundle
@@ -146,6 +148,12 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         )
     }
+    var canUseFullScreenIntent by remember {
+        mutableStateOf(
+            Build.VERSION.SDK_INT < 34 ||
+                context.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
+        )
+    }
     var recentCalls by remember { mutableStateOf<List<RecentCall>>(emptyList()) }
     var loadingRecentCalls by remember { mutableStateOf(false) }
     val favorites = remember(context) {
@@ -168,6 +176,10 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
     }
     val phoneRoleLauncher = rememberLauncherForActivityResult(StartActivityForResult()) {
         isDefaultDialer = isMoogDefaultPhoneApp(context)
+    }
+    val fullScreenIntentLauncher = rememberLauncherForActivityResult(StartActivityForResult()) {
+        canUseFullScreenIntent = Build.VERSION.SDK_INT < 34 ||
+            context.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -265,6 +277,7 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
                 Tab.Settings -> SettingsScreen(
                     isDefaultDialer = isDefaultDialer,
                     hasNotificationPermission = hasNotificationPermission,
+                    canUseFullScreenIntent = canUseFullScreenIntent,
                     onRequestPhoneRole = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                             val manager = context.getSystemService(RoleManager::class.java)
@@ -281,6 +294,14 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
                     onRequestNotifications = {
                         if (Build.VERSION.SDK_INT >= 33) {
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    },
+                    onRequestFullScreenIntent = {
+                        if (Build.VERSION.SDK_INT >= 34) {
+                            val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+                                data = Uri.parse("package:${context.packageName}")
+                            }
+                            fullScreenIntentLauncher.launch(intent)
                         }
                     }
                 )
@@ -610,8 +631,10 @@ private fun RecentCallRow(call: RecentCall, onDial: () -> Unit) {
 private fun SettingsScreen(
     isDefaultDialer: Boolean,
     hasNotificationPermission: Boolean,
+    canUseFullScreenIntent: Boolean,
     onRequestPhoneRole: () -> Unit,
-    onRequestNotifications: () -> Unit
+    onRequestNotifications: () -> Unit,
+    onRequestFullScreenIntent: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         ScreenTitle("Settings", "Make calling feel like yours")
@@ -627,6 +650,12 @@ private fun SettingsScreen(
         if (!hasNotificationPermission) {
             OutlinedButton(onClick = onRequestNotifications, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                 Text("Allow call notifications")
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+        if (Build.VERSION.SDK_INT >= 34 && !canUseFullScreenIntent) {
+            OutlinedButton(onClick = onRequestFullScreenIntent, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                Text("Allow full-screen incoming calls")
             }
             Spacer(Modifier.height(10.dp))
         }
