@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Backspace
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.provider.ContactsContract
 import com.moog.dialer.data.PhoneContact
 import com.moog.dialer.data.T9Search
 
@@ -92,6 +94,7 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
     var selectedTab by remember { mutableStateOf(Tab.Keypad) }
     var number by remember { mutableStateOf("") }
     var search by remember { mutableStateOf("") }
+    var selectedContactId by remember { mutableStateOf<Long?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
     var hasContactsPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(
@@ -121,10 +124,12 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
     }
 
     Column(Modifier.fillMaxSize().background(Page)) {
-        AppHeader(
-            onSearch = { selectedTab = Tab.Contacts },
-            onSettings = { selectedTab = Tab.Settings }
-        )
+        if (selectedContactId == null) {
+            AppHeader(
+                onSearch = { selectedTab = Tab.Contacts },
+                onSettings = { selectedTab = Tab.Settings }
+            )
+        }
         AnimatedContent(
             targetState = selectedTab,
             modifier = Modifier.weight(1f),
@@ -140,7 +145,13 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
                     onDial = { onDial(number) },
                     onChooseContact = { number = it }
                 )
-                Tab.Contacts -> ContactsScreen(
+                Tab.Contacts -> if (selectedContactId != null) {
+                    ContactDetailScreen(
+                        contactNumbers = contacts.filter { it.id == selectedContactId },
+                        onBack = { selectedContactId = null },
+                        onDial = onDial
+                    )
+                } else ContactsScreen(
                     contacts = contacts,
                     loading = loading,
                     hasPermission = hasContactsPermission,
@@ -148,6 +159,7 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
                     favorites = favorites,
                     onQueryChange = { search = it },
                     onRequestPermission = { permissionLauncher.launch(Manifest.permission.READ_CONTACTS) },
+                    onOpenContact = { selectedContactId = it },
                     onToggleFavorite = { id ->
                         if (favorites.contains(id)) favorites.remove(id) else favorites.add(id)
                         context.getSharedPreferences("moogs_dialer_preferences", 0)
@@ -161,16 +173,20 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
                     contacts = contacts.filter { favorites.contains(it.id) },
                     hasPermission = hasContactsPermission,
                     onRequestPermission = { permissionLauncher.launch(Manifest.permission.READ_CONTACTS) },
+                    onOpenContact = { selectedContactId = it },
                     onDial = onDial
                 )
                 Tab.Recents -> RecentsScreen()
                 Tab.Settings -> SettingsScreen()
             }
         }
-        BottomTabs(selected = selectedTab, onSelect = {
-            selectedTab = it
-            search = ""
-        })
+        if (selectedContactId == null) {
+            BottomTabs(selected = selectedTab, onSelect = {
+                selectedTab = it
+                selectedContactId = null
+                search = ""
+            })
+        }
     }
 }
 
@@ -297,6 +313,7 @@ private fun ContactsScreen(
     onQueryChange: (String) -> Unit,
     onRequestPermission: () -> Unit,
     onToggleFavorite: (Long) -> Unit,
+    onOpenContact: (Long) -> Unit,
     onDial: (String) -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
@@ -312,6 +329,9 @@ private fun ContactsScreen(
             SearchField(query, onQueryChange, "Search by name or number")
             Spacer(Modifier.height(12.dp))
             val filtered = contacts.filter { T9Search.matches(it, query) }
+                .groupBy { it.id }
+                .values
+                .map { it.first() }
             when {
                 loading -> CenterMessage("Loading contacts…", "Your address book is being read on this device.")
                 filtered.isEmpty() -> CenterMessage(
@@ -319,11 +339,12 @@ private fun ContactsScreen(
                     if (query.isBlank()) "Contacts with phone numbers will appear here." else "Try another name or number."
                 )
                 else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    items(filtered, key = { "${it.id}-${it.phoneNumber}" }) { contact ->
+                    items(filtered, key = { it.id }) { contact ->
                         ContactRow(
                             contact = contact,
                             favorite = favorites.contains(contact.id),
                             onFavorite = { onToggleFavorite(contact.id) },
+                            onOpenContact = { onOpenContact(contact.id) },
                             onDial = { onDial(contact.phoneNumber) }
                         )
                     }
@@ -338,6 +359,7 @@ private fun FavoritesScreen(
     contacts: List<PhoneContact>,
     hasPermission: Boolean,
     onRequestPermission: () -> Unit,
+    onOpenContact: (Long) -> Unit,
     onDial: (String) -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
@@ -351,14 +373,55 @@ private fun FavoritesScreen(
             )
             contacts.isEmpty() -> CenterMessage("No favorites yet", "Open Contacts and tap the star beside someone to add them here.")
             else -> LazyColumn {
-                items(contacts, key = { "${it.id}-${it.phoneNumber}" }) { contact ->
-                    ContactRow(contact, favorite = true, onFavorite = {}, onDial = { onDial(contact.phoneNumber) }, showFavorite = false)
+                items(contacts.groupBy { it.id }.values.map { it.first() }, key = { it.id }) { contact ->
+                    ContactRow(contact, favorite = true, onFavorite = {}, onOpenContact = { onOpenContact(contact.id) }, onDial = { onDial(contact.phoneNumber) }, showFavorite = false)
                 }
             }
         }
     }
 }
 
+@Composable
+private fun ContactDetailScreen(
+    contactNumbers: List<PhoneContact>,
+    onBack: () -> Unit,
+    onDial: (String) -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val contact = contactNumbers.firstOrNull()
+
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+        Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back to contacts", tint = Blue) }
+            Text("Contact", color = Ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+        }
+        if (contact == null) {
+            CenterMessage("Contact unavailable", "This contact may have been removed from your address book.")
+        } else {
+            Column(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Avatar(contact.displayName)
+                Spacer(Modifier.height(12.dp))
+                Text(contact.displayName, color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold)
+                Text(if (contactNumbers.size == 1) "1 phone number" else "${contactNumbers.size} phone numbers", color = Secondary, fontSize = 13.sp)
+            }
+            Text("PHONE NUMBERS", color = Secondary, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(9.dp))
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                items(contactNumbers, key = { "${it.id}-${it.phoneNumber}" }) { phone ->
+                    val label = ContactsContract.CommonDataKinds.Phone.getTypeLabel(context.resources, phone.phoneType, null).toString()
+                    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Card).padding(horizontal = 15.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(label, color = Secondary, fontSize = 11.sp)
+                            Spacer(Modifier.height(4.dp))
+                            Text(phone.phoneNumber, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        }
+                        IconButton(onClick = { onDial(phone.phoneNumber) }) { Icon(Icons.Default.Call, contentDescription = "Call ${phone.phoneNumber}", tint = Blue) }
+                    }
+                }
+            }
+        }
+    }
+}
 @Composable
 private fun RecentsScreen() {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
@@ -421,11 +484,12 @@ private fun ContactRow(
     contact: PhoneContact,
     favorite: Boolean,
     onFavorite: () -> Unit,
+    onOpenContact: () -> Unit,
     onDial: () -> Unit,
     showFavorite: Boolean = true
 ) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(horizontal = 11.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).clickable(onClick = onOpenContact).padding(horizontal = 11.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Avatar(contact.displayName)
