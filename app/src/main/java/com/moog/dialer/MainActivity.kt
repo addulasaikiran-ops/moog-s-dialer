@@ -357,8 +357,8 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
                     },
                     onOpenSpamProtection = {
                         context.startActivity(Intent(context, SpamProtectionActivity::class.java))
-                    }
-                    ,onOpenVoicemail = {
+                    },
+                    onOpenVoicemail = {
                         context.startActivity(Intent(context, VoicemailActivity::class.java))
                     }
                 )
