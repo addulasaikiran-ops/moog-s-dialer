@@ -213,14 +213,14 @@ class InCallActivity : ComponentActivity() {
                                         Spacer(Modifier.height(16.dp))
                                     }
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                        RoundCallButton(if (audio.isMuted) "Unmute" else "Mute", MoogColors.fill, if (audio.isMuted) Icons.Default.MicOff else Icons.Default.Mic, MoogColors.label) {
+                                            CallSession.toggleMute()
+                                        }
                                         if (canSendDtmf) {
                                             RoundCallButton(if (showDtmf) "Hide keypad" else "Keypad", MoogColors.fill, Icons.Default.Dialpad, MoogColors.label) {
                                                 showDtmf = !showDtmf
                                                 if (!showDtmf) CallSession.stopDtmfTone()
                                             }
-                                        }
-                                        RoundCallButton(if (audio.isMuted) "Unmute" else "Mute", MoogColors.fill, if (audio.isMuted) Icons.Default.MicOff else Icons.Default.Mic, MoogColors.label) {
-                                            CallSession.toggleMute()
                                         }
                                         RoundCallButton(
                                             if (audio.isSpeakerOn) "Speaker on" else "Speaker",
@@ -231,21 +231,23 @@ class InCallActivity : ComponentActivity() {
                                         ) {
                                             CallSession.toggleSpeaker()
                                         }
-                                        if (current.canHold) {
-                                            RoundCallButton(if (current.state == Call.STATE_HOLDING) "Resume" else "Hold", MoogColors.fill, if (current.state == Call.STATE_HOLDING) Icons.Default.PlayArrow else Icons.Default.Pause, MoogColors.label) {
-                                                CallSession.toggleHold(current.call)
-                                            }
-                                        }
                                     }
-                                    if (heldCall != null || conferenceTarget != null) {
+                                    val canSwap = heldCall != null && current.state == Call.STATE_ACTIVE && current.canHold && heldCall.canHold
+                                    val canMerge = conferenceTarget != null && current.state == Call.STATE_ACTIVE
+                                    if (current.canHold || canSwap || canMerge) {
                                         Spacer(Modifier.height(18.dp))
                                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                            if (heldCall != null && current.state == Call.STATE_ACTIVE && current.canHold && heldCall.canHold) {
+                                            if (current.canHold) {
+                                                RoundCallButton(if (current.state == Call.STATE_HOLDING) "Resume" else "Hold", MoogColors.fill, if (current.state == Call.STATE_HOLDING) Icons.Default.PlayArrow else Icons.Default.Pause, MoogColors.label) {
+                                                    CallSession.toggleHold(current.call)
+                                                }
+                                            }
+                                            if (canSwap && heldCall != null) {
                                                 RoundCallButton("Swap", MoogColors.fill, Icons.Default.PlayArrow, MoogColors.label) {
                                                     CallSession.swapCalls(current.call, heldCall.call)
                                                 }
                                             }
-                                            if (conferenceTarget != null && current.state == Call.STATE_ACTIVE) {
+                                            if (canMerge && conferenceTarget != null) {
                                                 RoundCallButton("Merge", MoogColors.fill, Icons.Default.Call, MoogColors.label) {
                                                     CallSession.conference(current.call, conferenceTarget.call)
                                                 }
