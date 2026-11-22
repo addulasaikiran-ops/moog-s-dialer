@@ -63,6 +63,8 @@ import com.moog.dialer.data.CallLogRepository
 import com.moog.dialer.data.RecentCall
 import com.moog.dialer.data.PhoneAccountOption
 import com.moog.dialer.data.PhoneAccountRepository
+import com.moog.dialer.ui.theme.MoogColors
+import com.moog.dialer.ui.theme.MoogTheme
 
 private fun isMoogDefaultPhoneApp(context: Context): Boolean {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -72,13 +74,6 @@ private fun isMoogDefaultPhoneApp(context: Context): Boolean {
     }
 }
 
-private val Page = Color(0xFFF5F6F8)
-private val Card = Color(0xFFFFFFFF)
-private val Ink = Color(0xFF17191D)
-private val Secondary = Color(0xFF858B96)
-private val Hairline = Color(0xFFE8EAF0)
-private val Blue = Color(0xFF087CFA)
-private val SoftBlue = Color(0xFFEAF3FF)
 
 private enum class Tab(val label: String) {
     Favorites("Favorites"), Recents("Recents"), Contacts("Contacts"), Keypad("Keypad"), Settings("Settings")
@@ -88,16 +83,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(
-                colorScheme = lightColorScheme(
-                    primary = Blue,
-                    onPrimary = Color.White,
-                    background = Page,
-                    surface = Card,
-                    onSurface = Ink,
-                    onBackground = Ink
-                )
-            ) {
+            MoogTheme {
                 MoogsDialerApp(
                     initialNumber = intent?.data?.schemeSpecificPart.orEmpty(),
                     onDial = { value ->
@@ -377,7 +363,7 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
 @Composable
 private fun AppHeader(onSearch: () -> Unit, onSettings: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().statusBarsPadding().background(Card).padding(horizontal = 22.dp, vertical = 16.dp),
+        Modifier.fillMaxWidth().statusBarsPadding().background(MoogColors.surface).padding(horizontal = 22.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
@@ -962,7 +948,7 @@ private fun SettingsScreen(
         Spacer(Modifier.height(14.dp))
         Card(
             modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenVoicemail),
-            colors = CardDefaults.cardColors(containerColor = Card)
+            colors = CardDefaults.cardColors(containerColor = MoogColors.surface)
         ) {
             Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
