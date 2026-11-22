@@ -323,6 +323,7 @@ private class VoicemailPlaybackController(private val context: Context) {
         private set
 
     private var mediaPlayer: MediaPlayer? = null
+    private var prepared = false
     private val handler = Handler(Looper.getMainLooper())
     private val progressTask = object : Runnable {
         override fun run() {
@@ -339,6 +340,7 @@ private class VoicemailPlaybackController(private val context: Context) {
     fun toggle(message: VoicemailMessage) {
         val current = mediaPlayer
         if (currentMessageId == message.id && current != null) {
+            if (!prepared) return
             if (current.isPlaying) {
                 current.pause()
                 isPlaying = false
@@ -356,6 +358,7 @@ private class VoicemailPlaybackController(private val context: Context) {
         mediaPlayer = next
         next.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
         next.setOnPreparedListener {
+            prepared = true
             durationMs = it.duration.toLong().coerceAtLeast(0L)
             it.start()
             isPlaying = true
@@ -395,6 +398,7 @@ private class VoicemailPlaybackController(private val context: Context) {
         runCatching { mediaPlayer?.stop() }
         runCatching { mediaPlayer?.release() }
         mediaPlayer = null
+        prepared = false
         currentMessageId = null
         isPlaying = false
         progress = 0f
