@@ -432,7 +432,7 @@ private fun formatDuration(seconds: Long): String {
 private fun openVoicemailCall(context: Context, number: String, account: PhoneAccountOption?) {
     if (number.isBlank()) return
     val uri = Uri.fromParts("tel", number.trim(), null)
-    if (isMoogDefaultDialer(context) && account != null) {
+    if (isMoogDefaultPhoneApp(context) && account != null) {
         runCatching {
             val extras = Bundle().apply { putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, account.handle) }
             context.getSystemService(TelecomManager::class.java).placeCall(uri, extras)
