@@ -1,6 +1,8 @@
 package com.moog.dialer.ui.screens
 
 import android.Manifest
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.app.NotificationManager
 import android.content.Intent
 import android.content.Context
@@ -21,6 +23,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -52,7 +55,10 @@ import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.produceState
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.animation.animateColorAsState
@@ -62,6 +68,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -69,6 +77,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import android.util.LruCache
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.provider.ContactsContract
 import com.moog.dialer.data.PhoneContact
@@ -684,7 +693,7 @@ private fun FavoritesScreen(
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Avatar(contact.displayName)
+                        Avatar(contact.displayName, contact.photoUri)
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text(contact.displayName, color = MoogColors.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
@@ -744,7 +753,7 @@ private fun ContactDetailScreen(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(MoogColors.surface).padding(vertical = 22.dp, horizontal = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Avatar(contact.displayName)
+                        Avatar(contact.displayName, contact.photoUri)
                         Spacer(Modifier.height(12.dp))
                         Text(contact.displayName, color = MoogColors.label, fontSize = 25.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                         Text(
@@ -1243,11 +1252,40 @@ private fun ContactRow(
     }
 }
 
+private object ContactPhotoCache {
+    private val cache = LruCache<String, Bitmap>(48)
+
+    fun get(uri: String): Bitmap? = cache.get(uri)
+
+    fun put(uri: String, bitmap: Bitmap) {
+        cache.put(uri, bitmap)
+    }
+}
+
 @Composable
-private fun Avatar(name: String) {
+private fun Avatar(name: String, photoUri: String? = null) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val initials = name.trim().split(Regex("\\s+")).take(2).mapNotNull { it.firstOrNull()?.toString() }.joinToString("").uppercase()
+    val photo by produceState<Bitmap?>(initialValue = null, photoUri) {
+        value = withContext(Dispatchers.IO) {
+            photoUri?.let { uri ->
+                ContactPhotoCache.get(uri) ?: runCatching {
+                    context.contentResolver.openInputStream(Uri.parse(uri))?.use(BitmapFactory::decodeStream)
+                }.getOrNull()?.also { ContactPhotoCache.put(uri, it) }
+            }
+        }
+    }
     Box(Modifier.size(42.dp).clip(CircleShape).background(MoogColors.fill), contentAlignment = Alignment.Center) {
-        Text(initials.ifBlank { "?" }, color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        if (photo != null) {
+            Image(
+                bitmap = photo!!.asImageBitmap(),
+                contentDescription = "$name contact photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Text(initials.ifBlank { "?" }, color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
     }
 }
 
