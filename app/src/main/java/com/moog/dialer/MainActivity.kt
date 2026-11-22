@@ -234,7 +234,7 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
         }
     }
 
-    Column(Modifier.fillMaxSize().background(Page)) {
+    Column(Modifier.fillMaxSize().background(MoogColors.background)) {
         if (selectedContactId == null) {
             AppHeader(
                 onSearch = { selectedTab = Tab.Contacts },
@@ -367,8 +367,8 @@ private fun AppHeader(onSearch: () -> Unit, onSettings: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
-            Text("moog's dialer", color = Ink, fontSize = 23.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.7).sp)
-            Text("A BETTER WAY TO CONNECT", color = Secondary, fontSize = 9.sp, letterSpacing = 1.4.sp, fontWeight = FontWeight.Medium)
+            Text("moog's dialer", color = MoogColors.label, fontSize = 23.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.7).sp)
+            Text("A BETTER WAY TO CONNECT", color = MoogColors.secondaryLabel, fontSize = 9.sp, letterSpacing = 1.4.sp, fontWeight = FontWeight.Medium)
         }
         HeaderButton(Icons.Default.Search, "Search", onSearch)
         Spacer(Modifier.width(8.dp))
@@ -379,9 +379,9 @@ private fun AppHeader(onSearch: () -> Unit, onSettings: () -> Unit) {
 @Composable
 private fun HeaderButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
     Box(
-        Modifier.size(40.dp).clip(CircleShape).background(Page).clickable(onClick = onClick),
+        Modifier.size(40.dp).clip(CircleShape).background(MoogColors.background).clickable(onClick = onClick),
         contentAlignment = Alignment.Center
-    ) { Icon(icon, contentDescription = label, tint = Ink, modifier = Modifier.size(19.dp)) }
+    ) { Icon(icon, contentDescription = label, tint = MoogColors.label, modifier = Modifier.size(19.dp)) }
 }
 
 @Composable
@@ -406,7 +406,7 @@ private fun KeypadScreen(
 
     Column(Modifier.fillMaxSize().padding(horizontal = 26.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(20.dp))
-        Text("KEYPAD", color = Secondary, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
+        Text("KEYPAD", color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth().height(54.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -416,21 +416,21 @@ private fun KeypadScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    textStyle = TextStyle(color = Ink, fontSize = 30.sp, textAlign = TextAlign.Center, letterSpacing = 1.sp),
+                    textStyle = TextStyle(color = MoogColors.label, fontSize = 30.sp, textAlign = TextAlign.Center, letterSpacing = 1.sp),
                     decorationBox = { inner ->
                         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            if (number.isEmpty()) Text("Enter a number", color = Secondary.copy(alpha = 0.65f), fontSize = 23.sp)
+                            if (number.isEmpty()) Text("Enter a number", color = MoogColors.secondaryLabel.copy(alpha = 0.65f), fontSize = 23.sp)
                             inner()
                         }
                     }
                 )
             }
             if (number.isNotEmpty()) {
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Backspace, "Delete", tint = Secondary) }
+                IconButton(onClick = onDelete) { Icon(Icons.Default.Backspace, "Delete", tint = MoogColors.secondaryLabel) }
             }
         }
         if (suggestions.isNotEmpty()) {
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Card)) {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MoogColors.surface)) {
                 suggestions.forEach { contact ->
                     Row(
                         Modifier.fillMaxWidth().clickable { onChooseContact(contact.phoneNumber) }.padding(12.dp),
@@ -439,8 +439,8 @@ private fun KeypadScreen(
                         Avatar(contact.displayName)
                         Spacer(Modifier.width(10.dp))
                         Column {
-                            Text(contact.displayName, color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                            Text(contact.phoneNumber, color = Secondary, fontSize = 11.sp)
+                            Text(contact.displayName, color = MoogColors.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text(contact.phoneNumber, color = MoogColors.secondaryLabel, fontSize = 11.sp)
                         }
                     }
                 }
@@ -457,8 +457,8 @@ private fun KeypadScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Text(digit, color = Ink, fontSize = 26.sp, fontWeight = FontWeight.Normal)
-                            if (letters.isNotEmpty()) Text(letters, color = Secondary, fontSize = 8.sp, letterSpacing = 1.5.sp)
+                            Text(digit, color = MoogColors.label, fontSize = 26.sp, fontWeight = FontWeight.Normal)
+                            if (letters.isNotEmpty()) Text(letters, color = MoogColors.secondaryLabel, fontSize = 8.sp, letterSpacing = 1.5.sp)
                         }
                     }
                 }
@@ -466,7 +466,7 @@ private fun KeypadScreen(
         }
         Spacer(Modifier.height(18.dp))
         Box(
-            Modifier.size(62.dp).clip(CircleShape).background(Blue).clickable(onClick = onDial),
+            Modifier.size(62.dp).clip(CircleShape).background(MoogColors.blue).clickable(onClick = onDial),
             contentAlignment = Alignment.Center
         ) { Icon(Icons.Default.Call, contentDescription = "Open phone dialer", tint = Color.White, modifier = Modifier.size(25.dp)) }
         Spacer(Modifier.height(20.dp))
@@ -579,8 +579,8 @@ private fun ContactDetailScreen(
 
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back to contacts", tint = Blue) }
-            Text("Contact profile", color = Ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back to contacts", tint = MoogColors.blue) }
+            Text("Contact profile", color = MoogColors.label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
         }
         if (contact == null) {
             CenterMessage("Contact unavailable", "This contact may have been removed from your address book.")
@@ -597,23 +597,23 @@ private fun ContactDetailScreen(
                     ) {
                         Avatar(contact.displayName)
                         Spacer(Modifier.height(12.dp))
-                        Text(contact.displayName, color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                        Text(contact.displayName, color = MoogColors.label, fontSize = 25.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                         Text(
                             if (uniqueNumbers.size == 1) "1 saved number" else "${uniqueNumbers.size} saved numbers",
-                            color = Secondary,
+                            color = MoogColors.secondaryLabel,
                             fontSize = 13.sp
                         )
                         Spacer(Modifier.height(12.dp))
                         Text(
                             if (contactHistory.isEmpty()) "No recent call history" else "${contactHistory.size} recent call${if (contactHistory.size == 1) "" else "s"}",
-                            color = Blue,
+                            color = MoogColors.blue,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
                 item {
-                    Text("PHONE NUMBERS", color = Secondary, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold)
+                    Text("PHONE NUMBERS", color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold)
                 }
                 items(uniqueNumbers, key = { "${it.id}-${normalizedPhoneNumber(it.phoneNumber)}" }) { phone ->
                     val label = ContactsContract.CommonDataKinds.Phone.getTypeLabel(context.resources, phone.phoneType, null).toString()
@@ -622,29 +622,29 @@ private fun ContactDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text(label, color = Secondary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                            Text(label, color = MoogColors.secondaryLabel, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                             Spacer(Modifier.height(4.dp))
-                            Text(phone.phoneNumber, color = Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                            Text(phone.phoneNumber, color = MoogColors.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                         }
                         IconButton(onClick = { onMessage(phone.phoneNumber) }) {
-                            Icon(Icons.Default.Sms, contentDescription = "Message ${label.lowercase()} number", tint = Blue)
+                            Icon(Icons.Default.Sms, contentDescription = "Message ${label.lowercase()} number", tint = MoogColors.blue)
                         }
                         IconButton(onClick = { onDial(phone.phoneNumber) }) {
-                            Icon(Icons.Default.Call, contentDescription = "Call ${label.lowercase()} number", tint = Blue)
+                            Icon(Icons.Default.Call, contentDescription = "Call ${label.lowercase()} number", tint = MoogColors.blue)
                         }
                     }
                 }
                 item {
                     Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("RECENT CALL HISTORY", color = Secondary, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                        Text("${contactHistory.size}", color = Blue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Text("RECENT CALL HISTORY", color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text("${contactHistory.size}", color = MoogColors.blue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
                 if (contactHistory.isEmpty()) {
                     item {
                         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Card).padding(16.dp)) {
-                            Text("No calls with this contact yet", color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Calls will appear here when Android makes the device call history available.", color = Secondary, fontSize = 11.sp)
+                            Text("No calls with this contact yet", color = MoogColors.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Calls will appear here when Android makes the device call history available.", color = MoogColors.secondaryLabel, fontSize = 11.sp)
                         }
                     }
                 } else {
@@ -656,7 +656,7 @@ private fun ContactDetailScreen(
                             CallLog.Calls.REJECTED_TYPE -> "Rejected"
                             else -> "Call"
                         }
-                        val typeTint = if (call.type == CallLog.Calls.MISSED_TYPE || call.type == CallLog.Calls.REJECTED_TYPE) Color(0xFFD94B4B) else Blue
+                        val typeTint = if (call.type == CallLog.Calls.MISSED_TYPE || call.type == CallLog.Calls.REJECTED_TYPE) Color(0xFFD94B4B) else MoogColors.blue
                         val timeLabel = DateUtils.getRelativeTimeSpanString(
                             call.date,
                             System.currentTimeMillis(),
@@ -668,13 +668,13 @@ private fun ContactDetailScreen(
                         ) {
                             Column(Modifier.weight(1f)) {
                                 Text(typeLabel + " · " + timeLabel, color = typeTint, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                                Text(call.number + " · " + call.simLabel, color = Secondary, fontSize = 10.sp)
+                                Text(call.number + " · " + call.simLabel, color = MoogColors.secondaryLabel, fontSize = 10.sp)
                             }
                             IconButton(onClick = { onMessage(call.number) }) {
-                                Icon(Icons.Default.Sms, contentDescription = "Message this number", tint = Blue)
+                                Icon(Icons.Default.Sms, contentDescription = "Message this number", tint = MoogColors.blue)
                             }
                             IconButton(onClick = { onDial(call.number) }) {
-                                Icon(Icons.Default.Call, contentDescription = "Call this number", tint = Blue)
+                                Icon(Icons.Default.Call, contentDescription = "Call this number", tint = MoogColors.blue)
                             }
                         }
                     }
@@ -762,8 +762,8 @@ private fun RecentsScreen(
                                     Modifier.fillMaxWidth().padding(start = 4.dp, top = 10.dp, bottom = 2.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(contactLabel, color = Ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                                    Text("${contactCalls.size} call${if (contactCalls.size == 1) "" else "s"}", color = Secondary, fontSize = 10.sp)
+                                    Text(contactLabel, color = MoogColors.label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                                    Text("${contactCalls.size} call${if (contactCalls.size == 1) "" else "s"}", color = MoogColors.secondaryLabel, fontSize = 10.sp)
                                 }
                             }
                             items(contactCalls, key = { it.id }) { call ->
@@ -813,7 +813,7 @@ private fun RecentCallRow(
     }
     val callColor = if (call.type == CallLog.Calls.MISSED_TYPE || call.type == CallLog.Calls.REJECTED_TYPE) {
         Color(0xFFD94B4B)
-    } else Blue
+    } else MoogColors.blue
     val relativeTime = DateUtils.getRelativeTimeSpanString(
         call.date,
         System.currentTimeMillis(),
@@ -825,15 +825,15 @@ private fun RecentCallRow(
             .clickable(onClick = onDial).padding(horizontal = 10.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(Modifier.size(38.dp).clip(CircleShape).background(SoftBlue), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(38.dp).clip(CircleShape).background(MoogColors.fill), contentAlignment = Alignment.Center) {
             Icon(Icons.Default.Call, contentDescription = null, tint = callColor, modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(call.displayName.ifBlank { call.number.ifBlank { "Unknown number" } }, color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(call.displayName.ifBlank { call.number.ifBlank { "Unknown number" } }, color = MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(3.dp))
             Text("${callType} · ${relativeTime}", color = callColor, fontSize = 11.sp)
-            Text(call.number.ifBlank { "Private number" } + " · " + call.simLabel, color = Secondary, fontSize = 10.sp)
+            Text(call.number.ifBlank { "Private number" } + " · " + call.simLabel, color = MoogColors.secondaryLabel, fontSize = 10.sp)
             if (isBlocked) {
                 Text("On your blocklist · blocked by you", color = Color(0xFFD94B4B), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
             }
@@ -842,10 +842,10 @@ private fun RecentCallRow(
             Text(if (isBlocked) "Unblock" else "Block", fontSize = 10.sp)
         }
         IconButton(onClick = onMessage, enabled = call.number.isNotBlank()) {
-            Icon(Icons.Default.Sms, contentDescription = "Message ${call.number}", tint = Blue, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.Sms, contentDescription = "Message ${call.number}", tint = MoogColors.blue, modifier = Modifier.size(18.dp))
         }
         IconButton(onClick = onDial, enabled = call.number.isNotBlank()) {
-            Icon(Icons.Default.Call, contentDescription = "Call ${call.number}", tint = Blue, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.Call, contentDescription = "Call ${call.number}", tint = MoogColors.blue, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -861,14 +861,14 @@ private fun SimPreferencePicker(
         else phoneAccounts.firstOrNull { it.key == selectedKey }?.label ?: "System default / Ask every time"
 
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Card).padding(14.dp)) {
-        Text("Preferred SIM for outgoing calls", color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text("Preferred SIM for outgoing calls", color = MoogColors.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(4.dp))
-        Text("Incoming calls always follow the SIM that receives them.", color = Secondary, fontSize = 11.sp)
+        Text("Incoming calls always follow the SIM that receives them.", color = MoogColors.secondaryLabel, fontSize = 11.sp)
         Spacer(Modifier.height(10.dp))
         Box {
             OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(selectedLabel, modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
-                Text("⌄", color = Secondary)
+                Text("⌄", color = MoogColors.secondaryLabel)
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 DropdownMenuItem(
@@ -885,7 +885,7 @@ private fun SimPreferencePicker(
         }
         if (phoneAccounts.isEmpty()) {
             Spacer(Modifier.height(6.dp))
-            Text("No SIM calling accounts are currently exposed by Android.", color = Secondary, fontSize = 11.sp)
+            Text("No SIM calling accounts are currently exposed by Android.", color = MoogColors.secondaryLabel, fontSize = 11.sp)
         }
     }
 }
@@ -914,7 +914,7 @@ private fun SettingsScreen(
             }
             Spacer(Modifier.height(10.dp))
         } else {
-            Text("MOOG'S DIALER is your default Phone app", color = Blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text("MOOG'S DIALER is your default Phone app", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(10.dp))
         }
         if (!hasNotificationPermission) {
@@ -929,7 +929,7 @@ private fun SettingsScreen(
             }
             Spacer(Modifier.height(10.dp))
         }
-        Text("CALLING SIM", color = Secondary, fontSize = 10.sp, letterSpacing = 1.4.sp, fontWeight = FontWeight.SemiBold)
+        Text("CALLING SIM", color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 1.4.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
         if (!hasPhoneStatePermission) {
             PermissionCard(
@@ -943,7 +943,7 @@ private fun SettingsScreen(
         }
         if (!isDefaultDialer) {
             Spacer(Modifier.height(6.dp))
-            Text("Set MOOG'S DIALER as the default Phone app for this SIM preference to control outgoing calls. Otherwise Android opens the system dialer.", color = Secondary, fontSize = 11.sp, lineHeight = 16.sp)
+            Text("Set MOOG'S DIALER as the default Phone app for this SIM preference to control outgoing calls. Otherwise Android opens the system dialer.", color = MoogColors.secondaryLabel, fontSize = 11.sp, lineHeight = 16.sp)
         }
         Spacer(Modifier.height(14.dp))
         Card(
@@ -952,26 +952,26 @@ private fun SettingsScreen(
         ) {
             Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Voicemail", color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Visual inbox, playback and per-SIM mailbox numbers", color = Secondary, fontSize = 12.sp)
+                    Text("Voicemail", color = MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Visual inbox, playback and per-SIM mailbox numbers", color = MoogColors.secondaryLabel, fontSize = 12.sp)
                 }
-                Text("Open  ›", color = Blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text("Open  ›", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
         Spacer(Modifier.height(8.dp))
         Card(
             modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenSpamProtection),
-            colors = CardDefaults.cardColors(containerColor = Card)
+            colors = CardDefaults.cardColors(containerColor = MoogColors.surface)
         ) {
             Row(
                 Modifier.fillMaxWidth().padding(15.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Spam protection", color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Manage your local blocklist and blocked callers", color = Secondary, fontSize = 12.sp)
+                    Text("Spam protection", color = MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Manage your local blocklist and blocked callers", color = MoogColors.secondaryLabel, fontSize = 12.sp)
                 }
-                Text("Manage  ›", color = Blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text("Manage  ›", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
         Spacer(Modifier.height(6.dp))
@@ -981,18 +981,18 @@ private fun SettingsScreen(
         SettingsRow("Privacy", "No account or cloud contact sync")
         SettingsRow("About", "MOOG'S DIALER · Version 0.2.0")
         Spacer(Modifier.height(18.dp))
-        Text("BUILT FOR YOUR EVERYDAY CONNECTIONS", color = Blue, fontSize = 10.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.SemiBold)
+        Text("BUILT FOR YOUR EVERYDAY CONNECTIONS", color = MoogColors.blue, fontSize = 10.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
-        Text("Call controls are provided by Android Telecom. Incoming-call notifications require notification access; full-screen presentation also depends on Android's notification and full-screen-intent settings.", color = Secondary, fontSize = 12.sp, lineHeight = 18.sp)
+        Text("Call controls are provided by Android Telecom. Incoming-call notifications require notification access; full-screen presentation also depends on Android's notification and full-screen-intent settings.", color = MoogColors.secondaryLabel, fontSize = 12.sp, lineHeight = 18.sp)
     }
 }
 
 @Composable
 private fun ScreenTitle(title: String, subtitle: String) {
     Spacer(Modifier.height(14.dp))
-    Text(title, color = Ink, fontSize = 30.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.9).sp)
+    Text(title, color = MoogColors.label, fontSize = 30.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.9).sp)
     Spacer(Modifier.height(3.dp))
-    Text(subtitle, color = Secondary, fontSize = 13.sp)
+    Text(subtitle, color = MoogColors.secondaryLabel, fontSize = 13.sp)
     Spacer(Modifier.height(20.dp))
 }
 
@@ -1002,17 +1002,17 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit, placehol
         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xFFE9EBEF)).padding(horizontal = 13.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(Icons.Default.Search, contentDescription = null, tint = Secondary, modifier = Modifier.size(18.dp))
+        Icon(Icons.Default.Search, contentDescription = null, tint = MoogColors.secondaryLabel, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            textStyle = TextStyle(color = Ink, fontSize = 14.sp),
+            textStyle = TextStyle(color = MoogColors.label, fontSize = 14.sp),
             decorationBox = { inner ->
                 Box {
-                    if (value.isEmpty()) Text(placeholder, color = Secondary, fontSize = 14.sp)
+                    if (value.isEmpty()) Text(placeholder, color = MoogColors.secondaryLabel, fontSize = 14.sp)
                     inner()
                 }
             }
@@ -1036,18 +1036,18 @@ private fun ContactRow(
         Avatar(contact.displayName)
         Spacer(Modifier.width(11.dp))
         Column(Modifier.weight(1f)) {
-            Text(contact.displayName, color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(contact.displayName, color = MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(2.dp))
-            Text(contact.phoneNumber, color = Secondary, fontSize = 12.sp)
+            Text(contact.phoneNumber, color = MoogColors.secondaryLabel, fontSize = 12.sp)
         }
         if (showFavorite) {
             IconButton(onClick = onFavorite) {
                 Icon(Icons.Default.Favorite, contentDescription = if (favorite) "Remove favorite" else "Add favorite",
-                    tint = if (favorite) Blue else Secondary.copy(alpha = 0.6f), modifier = Modifier.size(19.dp))
+                    tint = if (favorite) MoogColors.blue else MoogColors.secondaryLabel.copy(alpha = 0.6f), modifier = Modifier.size(19.dp))
             }
         }
         IconButton(onClick = onDial) {
-            Icon(Icons.Default.Call, contentDescription = "Call ${contact.displayName}", tint = Blue, modifier = Modifier.size(19.dp))
+            Icon(Icons.Default.Call, contentDescription = "Call ${contact.displayName}", tint = MoogColors.blue, modifier = Modifier.size(19.dp))
         }
     }
 }
@@ -1055,19 +1055,19 @@ private fun ContactRow(
 @Composable
 private fun Avatar(name: String) {
     val initials = name.trim().split(Regex("\\s+")).take(2).mapNotNull { it.firstOrNull()?.toString() }.joinToString("").uppercase()
-    Box(Modifier.size(42.dp).clip(CircleShape).background(SoftBlue), contentAlignment = Alignment.Center) {
-        Text(initials.ifBlank { "?" }, color = Blue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    Box(Modifier.size(42.dp).clip(CircleShape).background(MoogColors.fill), contentAlignment = Alignment.Center) {
+        Text(initials.ifBlank { "?" }, color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 private fun PermissionCard(title: String, body: String, button: String, onClick: () -> Unit) {
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Card).padding(20.dp)) {
-        Icon(Icons.Default.Contacts, contentDescription = null, tint = Blue, modifier = Modifier.size(26.dp))
+        Icon(Icons.Default.Contacts, contentDescription = null, tint = MoogColors.blue, modifier = Modifier.size(26.dp))
         Spacer(Modifier.height(12.dp))
-        Text(title, color = Ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+        Text(title, color = MoogColors.label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(6.dp))
-        Text(body, color = Secondary, fontSize = 13.sp, lineHeight = 19.sp)
+        Text(body, color = MoogColors.secondaryLabel, fontSize = 13.sp, lineHeight = 19.sp)
         Spacer(Modifier.height(16.dp))
         Button(onClick = onClick, shape = RoundedCornerShape(12.dp)) { Text(button) }
     }
@@ -1077,13 +1077,13 @@ private fun PermissionCard(title: String, body: String, button: String, onClick:
 private fun CenterMessage(title: String, body: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(Modifier.padding(horizontal = 30.dp).offset(y = (-24).dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.size(62.dp).clip(CircleShape).background(SoftBlue), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Person, contentDescription = null, tint = Blue, modifier = Modifier.size(27.dp))
+            Box(Modifier.size(62.dp).clip(CircleShape).background(MoogColors.fill), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.Person, contentDescription = null, tint = MoogColors.blue, modifier = Modifier.size(27.dp))
             }
             Spacer(Modifier.height(15.dp))
-            Text(title, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+            Text(title, color = MoogColors.label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
             Spacer(Modifier.height(6.dp))
-            Text(body, color = Secondary, fontSize = 12.sp, lineHeight = 18.sp, textAlign = TextAlign.Center)
+            Text(body, color = MoogColors.secondaryLabel, fontSize = 12.sp, lineHeight = 18.sp, textAlign = TextAlign.Center)
         }
     }
 }
@@ -1091,11 +1091,11 @@ private fun CenterMessage(title: String, body: String) {
 @Composable
 private fun SettingsRow(title: String, detail: String) {
     Column(Modifier.fillMaxWidth().padding(vertical = 15.dp)) {
-        Text(title, color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(title, color = MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(4.dp))
-        Text(detail, color = Secondary, fontSize = 12.sp)
+        Text(detail, color = MoogColors.secondaryLabel, fontSize = 12.sp)
     }
-    HorizontalDivider(color = Hairline, thickness = 0.8.dp)
+    HorizontalDivider(color = MoogColors.separator, thickness = 0.8.dp)
 }
 
 @Composable
@@ -1118,9 +1118,9 @@ private fun BottomTabs(selected: Tab, onSelect: (Tab) -> Unit) {
                 Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { onSelect(tab) }.padding(vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(icon, contentDescription = tab.label, tint = if (active) Blue else Secondary, modifier = Modifier.size(20.dp))
+                Icon(icon, contentDescription = tab.label, tint = if (active) MoogColors.blue else MoogColors.secondaryLabel, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.height(3.dp))
-                Text(tab.label, color = if (active) Blue else Secondary, fontSize = 9.sp, fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal)
+                Text(tab.label, color = if (active) MoogColors.blue else MoogColors.secondaryLabel, fontSize = 9.sp, fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal)
             }
         }
     }
