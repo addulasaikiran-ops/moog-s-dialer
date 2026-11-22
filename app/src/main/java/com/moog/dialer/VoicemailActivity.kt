@@ -148,11 +148,11 @@ private fun VoicemailScreen(onBack: () -> Unit) {
                     Text(stringResource(R.string.carrier_visual_voicemail), color = MoogColors.blue, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                     Text(
                         when {
-                            !isDefaultDialer -> "Set MOOG'S DIALER as your default Phone app"
-                            loadResult is VoicemailLoadResult.Available && messages.isNotEmpty() -> "Carrier voicemail messages are available"
-                            loadResult is VoicemailLoadResult.Available -> "No voicemail messages were returned by the device"
-                            loadResult is VoicemailLoadResult.ProviderUnavailable -> "Voicemail provider is unavailable"
-                            else -> "Connect to your carrier voicemail"
+                            !isDefaultDialer -> stringResource(R.string.set_default_phone_app)
+                            loadResult is VoicemailLoadResult.Available && messages.isNotEmpty() -> stringResource(R.string.carrier_messages_available)
+                            loadResult is VoicemailLoadResult.Available -> stringResource(R.string.no_voicemail_messages)
+                            loadResult is VoicemailLoadResult.ProviderUnavailable -> stringResource(R.string.voicemail_provider_unavailable)
+                            else -> stringResource(R.string.connect_to_carrier_voicemail)
                         },
                         color = MoogColors.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold
                     )
@@ -298,7 +298,7 @@ private fun VoicemailMessageCard(
             }
             if (!message.isRead) Box(
                 Modifier.size(7.dp).clip(CircleShape).background(MoogColors.blue)
-                    .semantics { contentDescription = "Unread voicemail" }
+                    .semantics { contentDescription = context.getString(R.string.unread_voicemail) }
             )
         }
         if (active) {
@@ -306,7 +306,7 @@ private fun VoicemailMessageCard(
                 value = player.progress,
                 onValueChange = { player.seekTo(it) },
                 valueRange = 0f..1f,
-                modifier = Modifier.semantics { contentDescription = "Voicemail playback position" }
+                modifier = Modifier.semantics { contentDescription = context.getString(R.string.voicemail_playback_position) }
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(formatDuration(player.positionMs / 1000), color = MoogColors.secondaryLabel, fontSize = 10.sp)
