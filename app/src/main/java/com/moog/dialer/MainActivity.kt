@@ -226,8 +226,16 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
         }
     }
 
-    LaunchedEffect(selectedTab, isDefaultDialer, hasCallLogPermission) {
-        if (selectedTab == Tab.Recents && isDefaultDialer && hasCallLogPermission) {
+    LaunchedEffect(selectedTab, selectedContactId) {
+        if (selectedTab == Tab.Contacts && selectedContactId != null) {
+            isDefaultDialer = isMoogDefaultPhoneApp(context)
+        }
+    }
+
+    LaunchedEffect(selectedTab, selectedContactId, isDefaultDialer, hasCallLogPermission) {
+        val needsCallHistory = selectedTab == Tab.Recents ||
+            (selectedTab == Tab.Contacts && selectedContactId != null)
+        if (needsCallHistory && isDefaultDialer && hasCallLogPermission) {
             loadingRecentCalls = true
             try {
                 recentCalls = CallLogRepository(context.contentResolver, if (hasPhoneStatePermission && hasPhoneNumbersPermission) PhoneAccountRepository.getAccountLabels(context) else emptyMap()).getRecentCalls()
