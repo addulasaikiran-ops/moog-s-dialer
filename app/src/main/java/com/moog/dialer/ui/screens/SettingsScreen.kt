@@ -1,5 +1,6 @@
 package com.moog.dialer.ui.screens
 
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -115,9 +116,9 @@ private fun SimPreferencePicker(
         else phoneAccounts.firstOrNull { it.key == selectedKey }?.label ?: "System default / Ask every time"
 
     MoogListRow(
-        title = "Preferred SIM",
+        title = stringResource(R.string.preferred_sim),
         subtitle = "Outgoing calls · $selectedLabel",
-        trailingValue = "Change",
+        trailingValue = stringResource(R.string.change),
         showChevron = true,
         onClick = { expanded = true }
     )
@@ -127,31 +128,31 @@ private fun SimPreferencePicker(
             containerColor = MoogColors.surface
         ) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-                Text("Choose calling SIM", style = MaterialTheme.typography.titleLarge, color = MoogColors.label)
+                Text(stringResource(R.string.choose_calling_sim), style = MaterialTheme.typography.titleLarge, color = MoogColors.label)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "This preference applies to outgoing calls when MOOG'S DIALER is the default Phone app.",
+                    stringResource(R.string.this_preference_applies_to_outgoing_calls_when_m),
                     style = MaterialTheme.typography.bodySmall,
                     color = MoogColors.secondaryLabel
                 )
                 Spacer(Modifier.height(12.dp))
                 MoogListRow(
-                    title = "System default / Ask every time",
-                    subtitle = "Let Android choose the calling account",
+                    title = stringResource(R.string.system_default_ask),
+                    subtitle = stringResource(R.string.system_choose_calling_account),
                     trailingValue = if (selectedKey == null) "Selected" else null,
                     onClick = { onSelect(null); expanded = false }
                 )
                 phoneAccounts.forEach { account ->
                     MoogListRow(
                         title = account.label,
-                        subtitle = "SIM calling account",
+                        subtitle = stringResource(R.string.sim_calling_account),
                         trailingValue = if (selectedKey == account.key) "Selected" else null,
                         onClick = { onSelect(account.key); expanded = false }
                     )
                 }
                 if (phoneAccounts.isEmpty()) {
                     Text(
-                        "Android is not currently exposing any SIM calling accounts.",
+                        stringResource(R.string.android_is_not_currently_exposing_any_sim_callin),
                         color = MoogColors.secondaryLabel,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(vertical = 12.dp)
@@ -182,14 +183,14 @@ internal fun SettingsScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     var appearanceMode by remember(context) { mutableStateOf(MoogAppearancePreferences.get(context)) }
 
-    MoogLargeTitleScaffold(title = "Settings") { padding ->
+    MoogLargeTitleScaffold(title = stringResource(R.string.screen_settings)) { padding ->
         androidx.compose.foundation.lazy.LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             item {
-                MoogGroupedSection(title = "APPEARANCE", footer = "System follows your phone's display setting.") {
+                MoogGroupedSection(title = stringResource(R.string.appearance), footer = stringResource(R.string.appearance_footer)) {
                     Column(Modifier.fillMaxWidth().padding(12.dp)) {
                         MoogSegmentedControl(
                             options = listOf("System", "Light", "Dark"),
@@ -205,20 +206,20 @@ internal fun SettingsScreen(
             }
             item {
                 MoogGroupedSection(
-                    title = "CALLING",
+                    title = stringResource(R.string.calling),
                     footer = if (isDefaultDialer) "MOOG'S DIALER can apply your calling SIM preference." else "Android controls outgoing calls until MOOG'S DIALER is selected as the default Phone app."
                 ) {
                     if (isDefaultDialer) {
                         MoogListRow(
-                            title = "Default Phone app",
-                            subtitle = "MOOG'S DIALER is handling phone calls",
-                            trailingValue = "Active"
+                            title = stringResource(R.string.default_phone_app),
+                            subtitle = stringResource(R.string.moog_s_dialer_is_handling_phone_calls),
+                            trailingValue = stringResource(R.string.active)
                         )
                     } else {
                         MoogListRow(
-                            title = "Default Phone app",
-                            subtitle = "Set MOOG'S DIALER as your phone app",
-                            trailingValue = "Set up",
+                            title = stringResource(R.string.default_phone_app),
+                            subtitle = stringResource(R.string.set_moog_s_dialer_as_your_phone_app),
+                            trailingValue = stringResource(R.string.set_up),
                             showChevron = true,
                             onClick = onRequestPhoneRole
                         )
@@ -227,9 +228,9 @@ internal fun SettingsScreen(
                         SimPreferencePicker(phoneAccounts, selectedPhoneAccountKey, onSelectPhoneAccount)
                     } else {
                         MoogListRow(
-                            title = "Preferred SIM",
-                            subtitle = "Allow phone access to choose an outgoing SIM",
-                            trailingValue = "Allow",
+                            title = stringResource(R.string.preferred_sim),
+                            subtitle = stringResource(R.string.allow_phone_access_to_choose_an_outgoing_sim),
+                            trailingValue = stringResource(R.string.allow),
                             showChevron = true,
                             onClick = onRequestPhoneState
                         )
@@ -238,27 +239,27 @@ internal fun SettingsScreen(
             }
             item {
                 MoogGroupedSection(
-                    title = "INCOMING CALLS",
-                    footer = "Incoming-call presentation also depends on Android and device manufacturer settings."
+                    title = stringResource(R.string.incoming_calls),
+                    footer = stringResource(R.string.incoming_call_presentation_also_depends_on_andro)
                 ) {
                     if (!hasNotificationPermission) {
                         MoogListRow(
-                            title = "Call notifications",
-                            subtitle = "Allow notifications for incoming and voicemail events",
-                            trailingValue = "Allow",
+                            title = stringResource(R.string.call_notifications),
+                            subtitle = stringResource(R.string.allow_notifications_for_incoming_and_voicemail_e),
+                            trailingValue = stringResource(R.string.allow),
                             showChevron = true,
                             onClick = onRequestNotifications
                         )
                     } else {
                         MoogListRow(
-                            title = "Call notifications",
-                            subtitle = "Notifications are allowed",
-                            trailingValue = "On"
+                            title = stringResource(R.string.call_notifications),
+                            subtitle = stringResource(R.string.notifications_are_allowed),
+                            trailingValue = stringResource(R.string.on)
                         )
                     }
                     if (Build.VERSION.SDK_INT >= 34) {
                         MoogListRow(
-                            title = "Full-screen incoming calls",
+                            title = stringResource(R.string.full_screen_incoming_calls),
                             subtitle = if (canUseFullScreenIntent) "Full-screen intent access is allowed" else "Allow the incoming call screen to appear over other apps",
                             trailingValue = if (canUseFullScreenIntent) "On" else "Allow",
                             showChevron = !canUseFullScreenIntent,
@@ -268,34 +269,34 @@ internal fun SettingsScreen(
                 }
             }
             item {
-                MoogGroupedSection(title = "CALLING FEATURES") {
+                MoogGroupedSection(title = stringResource(R.string.calling_features)) {
                     MoogListRow(
-                        title = "Voicemail",
-                        subtitle = "Visual inbox, playback and carrier mailbox settings",
+                        title = stringResource(R.string.voicemail),
+                        subtitle = stringResource(R.string.visual_inbox_playback_and_carrier_mailbox_settin),
                         showChevron = true,
                         onClick = onOpenVoicemail
                     )
                     MoogListRow(
-                        title = "Spam protection",
-                        subtitle = "Manage your on-device blocked numbers",
+                        title = stringResource(R.string.spam_protection),
+                        subtitle = stringResource(R.string.manage_your_on_device_blocked_numbers),
                         showChevron = true,
                         onClick = onOpenSpamProtection
                     )
                 }
             }
             item {
-                MoogGroupedSection(title = "ABOUT MOOG", footer = "Built for your everyday connections.") {
-                    MoogListRow(title = "Version", subtitle = "MOOG'S DIALER", trailingValue = BuildConfig.VERSION_NAME)
+                MoogGroupedSection(title = stringResource(R.string.about_moog), footer = stringResource(R.string.built_for_connections)) {
+                    MoogListRow(title = stringResource(R.string.version), subtitle = stringResource(R.string.moog_brand), trailingValue = BuildConfig.VERSION_NAME)
                     MoogListRow(
-                        title = "Privacy",
-                        subtitle = "Contacts and blocklist stay on this device",
-                        trailingValue = "On-device"
+                        title = stringResource(R.string.privacy),
+                        subtitle = stringResource(R.string.contacts_and_blocklist_stay_on_this_device),
+                        trailingValue = stringResource(R.string.on_device)
                     )
                 }
             }
             item {
                 Text(
-                    "Calling, SIM selection, voicemail availability and full-screen presentation are provided or controlled by Android Telecom, your carrier and your device manufacturer. Some features require MOOG'S DIALER to be the default Phone app.",
+                    stringResource(R.string.calling_sim_selection_voicemail_availability_and),
                     color = MoogColors.secondaryLabel,
                     style = MaterialTheme.typography.bodySmall,
                     lineHeight = 18.sp,
