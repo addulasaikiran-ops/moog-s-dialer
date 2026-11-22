@@ -307,7 +307,18 @@ fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, contactsView
                     onOpenContact = { selectedContactId = it },
                     onDial = onDial
                 )
-                Tab.Recents -> RecentsScreen(
+                Tab.Recents -> if (selectedRecentCall != null) {
+                    CallDetailScreen(
+                        call = selectedRecentCall!!,
+                        onBack = { selectedRecentCall = null },
+                        onDial = onDial,
+                        onMessage = { phoneNumber ->
+                            if (phoneNumber.isNotBlank()) {
+                                context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", phoneNumber, null)))
+                            }
+                        }
+                    )
+                } else RecentsScreen(
                     calls = recentCalls,
                     loading = loadingRecentCalls,
                     isDefaultDialer = isDefaultDialer,
