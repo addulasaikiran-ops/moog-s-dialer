@@ -1,5 +1,6 @@
 package com.moog.dialer.ui.screens
 
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -100,8 +101,12 @@ import com.moog.dialer.SpamProtectionActivity
 import com.moog.dialer.VoicemailActivity
 import com.moog.dialer.isMoogDefaultPhoneApp
 
-private enum class Tab(val label: String) {
-    Favorites("Favorites"), Recents("Recents"), Contacts("Contacts"), Keypad("Keypad"), Settings("Settings")
+private enum class Tab(@androidx.annotation.StringRes val labelRes: Int) {
+    Favorites(R.string.tab_favorites),
+    Recents(R.string.tab_recents),
+    Contacts(R.string.tab_contacts),
+    Keypad(R.string.tab_keypad),
+    Settings(R.string.tab_settings)
 }
 
 @Composable
@@ -529,11 +534,11 @@ internal fun SettingsRow(title: String, detail: String) {
 @Composable
 private fun BottomTabs(selected: Tab, onSelect: (Tab) -> Unit) {
     val items = listOf(
-        MoogTabItem(Tab.Favorites.name, Tab.Favorites.label, Icons.Default.Favorite),
-        MoogTabItem(Tab.Recents.name, Tab.Recents.label, Icons.Default.History),
-        MoogTabItem(Tab.Contacts.name, Tab.Contacts.label, Icons.Default.Person),
-        MoogTabItem(Tab.Keypad.name, Tab.Keypad.label, Icons.Default.Dialpad),
-        MoogTabItem(Tab.Settings.name, Tab.Settings.label, Icons.Default.Settings)
+        MoogTabItem(Tab.Favorites.name, stringResource(Tab.Favorites.labelRes), Icons.Default.Favorite),
+        MoogTabItem(Tab.Recents.name, stringResource(Tab.Recents.labelRes), Icons.Default.History),
+        MoogTabItem(Tab.Contacts.name, stringResource(Tab.Contacts.labelRes), Icons.Default.Person),
+        MoogTabItem(Tab.Keypad.name, stringResource(Tab.Keypad.labelRes), Icons.Default.Dialpad),
+        MoogTabItem(Tab.Settings.name, stringResource(Tab.Settings.labelRes), Icons.Default.Settings)
     )
     MoogTabBar(
         items = items,
