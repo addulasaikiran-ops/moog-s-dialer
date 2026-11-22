@@ -148,4 +148,21 @@
         <item quantity="one">%d unread message</item>
         <item quantity="other">%d unread messages</item>
     </plurals>
+    <string name="this_preference_applies_to_outgoing_calls_when_m">This preference applies to outgoing calls when MOOG&apos;S DIALER is the default Phone app.</string>
+    <string name="android_is_not_currently_exposing_any_sim_callin">Android is not currently exposing any SIM calling accounts.</string>
+    <string name="calling_sim_selection_voicemail_availability_and">Calling, SIM selection, voicemail availability and full-screen presentation are provided or controlled by Android Telecom, your carrier and your device manufacturer. Some features require MOOG&apos;S DIALER to be the default Phone app.</string>
+    <string name="incoming_call_presentation_also_depends_on_andro">Incoming-call presentation also depends on Android and device manufacturer settings.</string>
+    <string name="moog_s_dialer_is_handling_phone_calls">MOOG&apos;S DIALER is handling phone calls</string>
+    <string name="set_moog_s_dialer_as_your_phone_app">Set MOOG&apos;S DIALER as your phone app</string>
+    <string name="allow_phone_access_to_choose_an_outgoing_sim">Allow phone access to choose an outgoing SIM</string>
+    <string name="allow_notifications_for_incoming_and_voicemail_e">Allow notifications for incoming and voicemail events</string>
+    <string name="notifications_are_allowed">Notifications are allowed</string>
+    <string name="full_screen_incoming_calls">Full-screen incoming calls</string>
+    <string name="visual_inbox_playback_and_carrier_mailbox_settin">Visual inbox, playback and carrier mailbox settings</string>
+    <string name="manage_your_on_device_blocked_numbers">Manage your on-device blocked numbers</string>
+    <string name="contacts_and_blocklist_stay_on_this_device">Contacts and blocklist stay on this device</string>
+    <string name="call_entered_number">Call entered number</string>
+    <string name="delete_last_digit">Delete last digit</string>
+    <string name="loading_contacts">Loading contacts…</string>
+    <string name="your_address_book_is_being_read_on_this_device">Your address book is being read on this device.</string>
 </resources>
