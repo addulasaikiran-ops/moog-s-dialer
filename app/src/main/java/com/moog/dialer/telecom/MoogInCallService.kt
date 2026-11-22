@@ -39,7 +39,6 @@ class MoogInCallService : InCallService() {
         val entry = CallSession.primaryCall() ?: return
         val manager = getSystemService(NotificationManager::class.java)
         val isIncoming = entry.state == Call.STATE_RINGING
-        val person = Person.Builder().setName(entry.number).build()
         val openIntent = PendingIntent.getActivity(
             this,
             100,
@@ -67,6 +66,7 @@ class MoogInCallService : InCallService() {
             .setFullScreenIntent(openIntent, isIncoming)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val person = Person.Builder().setName(entry.number).build()
             val style = if (isIncoming) {
                 Notification.CallStyle.forIncomingCall(person, declineIntent, answerIntent)
             } else {
