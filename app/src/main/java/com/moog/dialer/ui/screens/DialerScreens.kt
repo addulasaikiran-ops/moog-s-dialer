@@ -35,6 +35,10 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.CallMade
+import androidx.compose.material.icons.filled.CallMissed
+import androidx.compose.material.icons.filled.CallReceived
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Favorite
@@ -829,6 +833,8 @@ private fun ContactDetailScreen(
     }
 }
 
+private data class RecentCallGroup(val key: String, val calls: List<RecentCall>)
+
 @Composable
 private fun RecentsScreen(
     calls: List<RecentCall>,
@@ -840,7 +846,7 @@ private fun RecentsScreen(
 ) {
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("All") }
-    var spamRefresh by remember { mutableStateOf(0) }
+    var filterMenuExpanded by remember { mutableStateOf(false) }
     val filteredCalls = remember(calls, query, filter) {
         calls.filter { call ->
             val matchesFilter = when (filter) {
@@ -856,12 +862,21 @@ private fun RecentsScreen(
             matchesFilter && matchesQuery
         }
     }
-    // CallLog is newest-first, so group insertion order keeps each contact's
-    // most recent interaction as the group's position in the timeline.
+    // Collapse only adjacent calls from the same contact, preserving the
+    // newest-first call-log timeline rather than grouping the entire history.
     val groupedCalls = remember(filteredCalls) {
-        filteredCalls.groupBy { call ->
-            call.displayName.trim().takeIf { it.isNotEmpty() } ?: call.number.ifBlank { "Unknown number" }
+        val groups = mutableListOf<RecentCallGroup>()
+        filteredCalls.forEach { call ->
+            val key = call.displayName.trim().takeIf { it.isNotEmpty() }
+                ?: call.number.ifBlank { "Unknown number" }
+            val previous = groups.lastOrNull()
+            if (previous?.key == key) {
+                groups[groups.lastIndex] = previous.copy(calls = previous.calls + call)
+            } else {
+                groups += RecentCallGroup(key, listOf(call))
+            }
         }
+        groups
     }
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -882,14 +897,42 @@ private fun RecentsScreen(
             else -> {
                 SearchField(query, { query = it }, "Search name or phone number")
                 Spacer(Modifier.height(10.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("All", "Missed", "Incoming", "Outgoing").forEach { option ->
-                        FilterChip(
-                            selected = filter == option,
-                            onClick = { filter = option },
-                            label = { Text(option, fontSize = 11.sp) },
-                            modifier = Modifier.weight(1f)
-                        )
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MoogSegmentedControl(
+                        options = listOf("All", "Missed"),
+                        selectedIndex = if (filter == "Missed") 1 else 0,
+                        onSelected = { filter = if (it == 1) "Missed" else "All" },
+                        modifier = Modifier.weight(1f)
+                    )
+                    Box {
+                        IconButton(onClick = { filterMenuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More call filters", tint = MoogColors.secondaryLabel)
+                        }
+                        DropdownMenu(
+                            expanded = filterMenuExpanded,
+                            onDismissRequest = { filterMenuExpanded = false }
+                        ) {
+                            listOf("Incoming", "Outgoing").forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        filter = option
+                                        filterMenuExpanded = false
+                                    }
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text("All calls") },
+                                onClick = {
+                                    filter = "All"
+                                    filterMenuExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -901,36 +944,22 @@ private fun RecentsScreen(
                     )
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        groupedCalls.forEach { (contactLabel, contactCalls) ->
-                            item(key = "group-$contactLabel") {
-                                Row(
-                                    Modifier.fillMaxWidth().padding(start = 4.dp, top = 10.dp, bottom = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(contactLabel, color = MoogColors.label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                                    Text("${contactCalls.size} call${if (contactCalls.size == 1) "" else "s"}", color = MoogColors.secondaryLabel, fontSize = 10.sp)
-                                }
+                        items(groupedCalls, key = { it.calls.first().id }) { group ->
+                            val latestCall = group.calls.first()
+                            val blockedByUser = remember(latestCall.number) {
+                                SpamBlockRepository.isBlocked(context, latestCall.number)
                             }
-                            items(contactCalls, key = { it.id }) { call ->
-                                val blockedByUser = remember(call.number, spamRefresh) {
-                                    SpamBlockRepository.isBlocked(context, call.number)
-                                }
-                                RecentCallRow(
-                                    call = call,
-                                    isBlocked = blockedByUser,
-                                    onToggleBlock = {
-                                        if (blockedByUser) SpamBlockRepository.unblock(context, call.number)
-                                        else SpamBlockRepository.block(context, call.number)
-                                        spamRefresh++
-                                    },
-                                    onDial = { onDial(call.number) },
-                                    onMessage = {
-                                        if (call.number.isNotBlank()) {
-                                            context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", call.number, null)))
-                                        }
+                            RecentCallRow(
+                                call = latestCall,
+                                callCount = group.calls.size,
+                                isBlocked = blockedByUser,
+                                onDial = { onDial(latestCall.number) },
+                                onMessage = {
+                                    if (latestCall.number.isNotBlank()) {
+                                        context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", latestCall.number, null)))
                                     }
-                                )
-                            }
+                                }
+                            )
                         }
                     }
                 }
@@ -942,8 +971,8 @@ private fun RecentsScreen(
 @Composable
 private fun RecentCallRow(
     call: RecentCall,
+    callCount: Int = 1,
     isBlocked: Boolean,
-    onToggleBlock: () -> Unit,
     onDial: () -> Unit,
     onMessage: () -> Unit
 ) {
@@ -956,35 +985,38 @@ private fun RecentCallRow(
         CallLog.Calls.VOICEMAIL_TYPE -> "Voicemail"
         else -> "Call"
     }
-    val callColor = if (call.type == CallLog.Calls.MISSED_TYPE || call.type == CallLog.Calls.REJECTED_TYPE) {
-        MoogColors.red
-    } else MoogColors.blue
+    val missed = call.type == CallLog.Calls.MISSED_TYPE || call.type == CallLog.Calls.REJECTED_TYPE
+    val callColor = if (missed) MoogColors.red else MoogColors.blue
+    val callIcon = when (call.type) {
+        CallLog.Calls.MISSED_TYPE, CallLog.Calls.REJECTED_TYPE -> Icons.Default.CallMissed
+        CallLog.Calls.INCOMING_TYPE -> Icons.Default.CallReceived
+        CallLog.Calls.OUTGOING_TYPE -> Icons.Default.CallMade
+        else -> Icons.Default.Call
+    }
     val relativeTime = DateUtils.getRelativeTimeSpanString(
         call.date,
         System.currentTimeMillis(),
         DateUtils.MINUTE_IN_MILLIS
     ).toString()
+    val name = call.displayName.ifBlank { call.number.ifBlank { "Unknown number" } }
+    val displayName = if (callCount > 1) "$name ($callCount)" else name
 
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(MoogColors.surface)
-            .clickable(onClick = onDial).padding(horizontal = 10.dp, vertical = 11.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MoogColors.surface)
+            .clickable(onClick = onDial).padding(horizontal = 12.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(Modifier.size(38.dp).clip(CircleShape).background(MoogColors.fill), contentAlignment = Alignment.Center) {
-            Icon(Icons.Default.Call, contentDescription = null, tint = callColor, modifier = Modifier.size(18.dp))
+            Icon(callIcon, contentDescription = callType, tint = callColor, modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(call.displayName.ifBlank { call.number.ifBlank { "Unknown number" } }, color = MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(3.dp))
-            Text("${callType} · ${relativeTime}", color = callColor, fontSize = 11.sp)
-            Text(call.number.ifBlank { "Private number" } + " · " + call.simLabel, color = MoogColors.secondaryLabel, fontSize = 10.sp)
+            Text(displayName, color = if (missed) MoogColors.red else MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text("$callType · $relativeTime", color = callColor, fontSize = 12.sp)
+            Text(call.number.ifBlank { "Private number" } + " · " + call.simLabel, color = MoogColors.secondaryLabel, fontSize = 11.sp)
             if (isBlocked) {
-                Text("On your blocklist · blocked by you", color = MoogColors.red, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                Text("On your blocklist · blocked by you", color = MoogColors.red, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             }
-        }
-        TextButton(onClick = onToggleBlock, enabled = call.number.isNotBlank()) {
-            Text(if (isBlocked) "Unblock" else "Block", fontSize = 10.sp)
         }
         IconButton(onClick = onMessage, enabled = call.number.isNotBlank()) {
             Icon(Icons.Default.Sms, contentDescription = "Message ${call.number}", tint = MoogColors.blue, modifier = Modifier.size(18.dp))
