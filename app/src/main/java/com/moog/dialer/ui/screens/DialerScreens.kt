@@ -288,7 +288,19 @@ fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, contactsView
                     },
                     onDial = onDial
                 )
-                Tab.Favorites -> FavoritesScreen(
+                Tab.Favorites -> if (selectedContactId != null) {
+                    ContactDetailScreen(
+                        contactNumbers = contacts.filter { it.id == selectedContactId },
+                        recentCalls = recentCalls,
+                        onBack = { selectedContactId = null },
+                        onDial = onDial,
+                        onMessage = { phoneNumber ->
+                            if (phoneNumber.isNotBlank()) {
+                                context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", phoneNumber, null)))
+                            }
+                        }
+                    )
+                } else FavoritesScreen(
                     contacts = contacts.filter { favorites.contains(it.id) },
                     hasPermission = hasContactsPermission,
                     onRequestPermission = { permissionLauncher.launch(Manifest.permission.READ_CONTACTS) },
