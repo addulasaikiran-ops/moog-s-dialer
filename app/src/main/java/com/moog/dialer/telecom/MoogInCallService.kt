@@ -11,7 +11,6 @@ import android.telecom.Call
 import android.telecom.CallAudioState
 import android.telecom.InCallService
 import com.moog.dialer.InCallActivity
-import com.moog.dialer.R
 
 class MoogInCallService : InCallService() {
     override fun onCreate() {
