@@ -37,7 +37,7 @@
             </intent-filter>
         </service>
         <receiver android:name=".telecom.CallActionReceiver" android:exported="false" />
-        <receiver android:name=".VoicemailNotificationReceiver" android:exported="false">
+        <receiver android:name=".VoicemailNotificationReceiver" android:exported="true" android:permission="com.android.voicemail.permission.ADD_VOICEMAIL">
             <intent-filter>
                 <action android:name="android.intent.action.NEW_VOICEMAIL" />
             </intent-filter>
