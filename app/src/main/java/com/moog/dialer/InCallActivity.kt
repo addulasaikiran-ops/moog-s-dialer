@@ -152,12 +152,12 @@ class InCallActivity : ComponentActivity() {
                         }
                         val incoming = current.state == Call.STATE_RINGING
                         val status = when (current.state) {
-                            Call.STATE_RINGING -> "Incoming call"
-                            Call.STATE_DIALING -> "Calling…"
-                            Call.STATE_CONNECTING -> "Connecting…"
-                            Call.STATE_ACTIVE -> "Connected"
-                            Call.STATE_HOLDING -> "On hold"
-                            else -> "Call"
+                            Call.STATE_RINGING -> stringResource(R.string.incoming_call)
+                            Call.STATE_DIALING -> stringResource(R.string.calling_status)
+                            Call.STATE_CONNECTING -> stringResource(R.string.connecting_status)
+                            Call.STATE_ACTIVE -> stringResource(R.string.connected_status)
+                            Call.STATE_HOLDING -> stringResource(R.string.on_hold_status)
+                            else -> stringResource(R.string.call)
                         }
                         val speakerAvailable = audio.availableRoutes and CallAudioState.ROUTE_SPEAKER != 0
                         val canSendDtmf = current.state == Call.STATE_ACTIVE || current.state == Call.STATE_HOLDING
