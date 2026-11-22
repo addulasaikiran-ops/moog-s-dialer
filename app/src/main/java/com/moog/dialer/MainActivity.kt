@@ -87,21 +87,9 @@ private fun MoogsDialerApp(onDial: (String) -> Unit) {
     var number by remember { mutableStateOf("") }
     var query by remember { mutableStateOf("") }
 
-    val recents = remember {
-        listOf(
-            CallEntry("Aarav Mehta", "+91 98765 43210", "Today · 10:42 AM", "AM"),
-            CallEntry("Maya Reddy", "+91 91234 56780", "Yesterday · 8:16 PM", "MR"),
-            CallEntry("Kiran Kumar", "+91 99887 76655", "Yesterday · 1:05 PM", "KK")
-        )
-    }
-    val contacts = remember {
-        listOf(
-            ContactEntry("Aarav Mehta", "+91 98765 43210", "AM"),
-            ContactEntry("Kiran Kumar", "+91 99887 76655", "KK"),
-            ContactEntry("Maya Reddy", "+91 91234 56780", "MR"),
-            ContactEntry("Nisha Rao", "+91 90000 11122", "NR")
-        )
-    }
+    // Live provider data is intentionally not fabricated; provider integration is the next milestone.
+    val recents = emptyList<CallEntry>()
+    val contacts = emptyList<ContactEntry>()
 
     Column(Modifier.fillMaxSize().background(Canvas)) {
         AppHeader(
