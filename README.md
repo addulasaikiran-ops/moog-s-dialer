@@ -53,8 +53,8 @@ Windows PowerShell:
 - [x] Contact detail screen with all saved phone numbers and type labels
 - [x] Grouped contact list entries with one row per person
 - [x] Recent calls backed by Android CallLog, gated by default Phone role and call-log permission
-- [ ] Default Phone role and Android Telecom integration
-- [ ] In-call UI through `InCallService`
+- [x] Default Phone role request flow and Android Telecom InCallService registration
+- [x] Incoming and ongoing call UI through `InCallService` with answer, decline, end, mute, speaker, and hold controls
 - [ ] Dual-SIM behavior and carrier/device edge cases
 - [ ] Accessibility, automated checks, device QA, and release build
 
