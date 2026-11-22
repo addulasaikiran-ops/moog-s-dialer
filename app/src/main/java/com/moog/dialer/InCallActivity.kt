@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.moog.dialer.telecom.CallSession
+import com.moog.dialer.SpamBlockRepository
 
 private val CallBlue = Color(0xFF087CFA)
 private val CallInk = Color(0xFF17191D)
@@ -127,7 +128,8 @@ class InCallActivity : ComponentActivity() {
 
                             if (incoming) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                                    RoundCallButton("Decline", Color(0xFFE5484D), Icons.Default.CallEnd) {
+                                    RoundCallButton("Block & decline", Color(0xFFE5484D), Icons.Default.CallEnd) {
+                                        SpamBlockRepository.block(this@InCallActivity, current.number)
                                         CallSession.reject(current.call)
                                         finish()
                                     }
