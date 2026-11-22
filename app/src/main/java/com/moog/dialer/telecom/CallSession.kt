@@ -2,7 +2,6 @@ package com.moog.dialer.telecom
 
 import android.telecom.Call
 import android.telecom.CallAudioState
-import android.telecom.VideoProfile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
