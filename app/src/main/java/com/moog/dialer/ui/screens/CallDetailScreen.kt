@@ -1,5 +1,6 @@
 package com.moog.dialer.ui.screens
 
+import androidx.compose.ui.res.stringResource
 import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -63,10 +64,10 @@ internal fun CallDetailScreen(
     val durationLabel = "%d:%02d".format(call.durationSeconds.coerceAtLeast(0L) / 60, call.durationSeconds.coerceAtLeast(0L) % 60)
 
     MoogLargeTitleScaffold(
-        title = "Call Details",
+        title = stringResource(R.string.screen_call_details),
         navigationIcon = {
             IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back to Recents", tint = MoogColors.blue)
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back_to_recents), tint = MoogColors.blue)
             }
         }
     ) { padding ->
@@ -99,16 +100,16 @@ internal fun CallDetailScreen(
                 }
             }
 
-            MoogGroupedSection(title = "CALL INFORMATION") {
-                MoogListRow(title = "Type", trailingValue = callType)
-                MoogListRow(title = "When", trailingValue = whenLabel)
-                MoogListRow(title = "Duration", trailingValue = durationLabel)
-                MoogListRow(title = "SIM", trailingValue = call.simLabel)
+            MoogGroupedSection(title = stringResource(R.string.call_information)) {
+                MoogListRow(title = stringResource(R.string.type), trailingValue = callType)
+                MoogListRow(title = stringResource(R.string.when), trailingValue = whenLabel)
+                MoogListRow(title = stringResource(R.string.duration), trailingValue = durationLabel)
+                MoogListRow(title = stringResource(R.string.sim), trailingValue = call.simLabel)
             }
 
             MoogGroupedSection(
-                title = "PRIVACY AND SAFETY",
-                footer = "Blocking is stored locally on this device. Private or withheld numbers cannot be matched."
+                title = stringResource(R.string.privacy_and_safety),
+                footer = stringResource(R.string.blocking_stored_locally)
             ) {
                 MoogListRow(
                     title = if (isBlocked) "Unblock this number" else "Block this number",
