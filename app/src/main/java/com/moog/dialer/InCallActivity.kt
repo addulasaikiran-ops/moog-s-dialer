@@ -44,10 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.moog.dialer.telecom.CallSession
 import com.moog.dialer.SpamBlockRepository
+import com.moog.dialer.ui.theme.MoogColors
+import com.moog.dialer.ui.theme.MoogTheme
 
-private val CallBlue = Color(0xFF087CFA)
-private val CallInk = Color(0xFF17191D)
-private val CallMuted = Color(0xFF858B96)
 
 class InCallActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +59,7 @@ class InCallActivity : ComponentActivity() {
             window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
         }
         setContent {
-            MaterialTheme(colorScheme = androidx.compose.material3.lightColorScheme(primary = CallBlue)) {
+            MoogTheme(forceDark = true) {
                 var showDtmf by remember { mutableStateOf(false) }
                 val calls by CallSession.calls.collectAsState()
                 val audio by CallSession.audio.collectAsState()
@@ -82,7 +81,7 @@ class InCallActivity : ComponentActivity() {
                     if (calls.isEmpty()) finish()
                 }
 
-                Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF5F6F8)) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MoogColors.background) {
                     if (current == null) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text("No active call", color = CallMuted)
@@ -128,7 +127,7 @@ class InCallActivity : ComponentActivity() {
 
                             if (incoming) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                                    RoundCallButton("Block & decline", Color(0xFFE5484D), Icons.Default.CallEnd) {
+                                    RoundCallButton("Block & decline", MoogColors.red, Icons.Default.CallEnd) {
                                         SpamBlockRepository.block(this@InCallActivity, current.number)
                                         CallSession.reject(current.call)
                                         finish()
@@ -150,7 +149,7 @@ class InCallActivity : ComponentActivity() {
                                     }
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                                         if (canSendDtmf) {
-                                            RoundCallButton(if (showDtmf) "Hide keypad" else "Keypad", Color(0xFFE8EDF5), Icons.Default.Dialpad, CallInk) {
+                                            RoundCallButton(if (showDtmf) "Hide keypad" else "Keypad", MoogColors.fill, Icons.Default.Dialpad, CallInk) {
                                                 showDtmf = !showDtmf
                                                 if (!showDtmf) CallSession.stopDtmfTone()
                                             }
