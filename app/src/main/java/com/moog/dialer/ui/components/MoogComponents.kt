@@ -163,9 +163,10 @@ fun MoogSearchBar(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "Search",
+    placeholder: String? = null,
     onCancel: (() -> Unit)? = null
 ) {
+    val resolvedPlaceholder = placeholder ?: stringResource(R.string.search)
     Row(
         modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp)
             .clip(RoundedCornerShape(12.dp))
@@ -182,7 +183,7 @@ fun MoogSearchBar(
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = MoogColors.label),
             decorationBox = { inner ->
-                if (value.isEmpty()) Text(placeholder, color = MoogColors.secondaryLabel, style = MaterialTheme.typography.bodyLarge)
+                if (value.isEmpty()) Text(resolvedPlaceholder, color = MoogColors.secondaryLabel, style = MaterialTheme.typography.bodyLarge)
                 inner()
             }
         )
@@ -297,7 +298,7 @@ fun MoogNavBar(title: String, onBack: () -> Unit, trailing: (@Composable () -> U
         modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 52.dp).padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TextButton(onClick = onBack) { Text("‹ $title", color = MoogColors.blue, style = MaterialTheme.typography.bodyLarge) }
+        TextButton(onClick = onBack) { Text(stringResource(R.string.back_to_title, title), color = MoogColors.blue, style = MaterialTheme.typography.bodyLarge) }
         Spacer(Modifier.weight(1f))
         trailing?.invoke()
     }
