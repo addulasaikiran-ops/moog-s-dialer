@@ -265,8 +265,14 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
                 Tab.Contacts -> if (selectedContactId != null) {
                     ContactDetailScreen(
                         contactNumbers = contacts.filter { it.id == selectedContactId },
+                        recentCalls = recentCalls,
                         onBack = { selectedContactId = null },
-                        onDial = onDial
+                        onDial = onDial,
+                        onMessage = { phoneNumber ->
+                            if (phoneNumber.isNotBlank()) {
+                                context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", phoneNumber, null)))
+                            }
+                        }
                     )
                 } else ContactsScreen(
                     contacts = contacts,
@@ -546,46 +552,139 @@ private fun FavoritesScreen(
 }
 
 @Composable
+private fun normalizedPhoneNumber(number: String): String =
+    number.filter { it.isDigit() }.let { digits ->
+        if (digits.length > 10) digits.takeLast(10) else digits
+    }
+
+@Composable
 private fun ContactDetailScreen(
     contactNumbers: List<PhoneContact>,
+    recentCalls: List<RecentCall>,
     onBack: () -> Unit,
-    onDial: (String) -> Unit
+    onDial: (String) -> Unit,
+    onMessage: (String) -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val contact = contactNumbers.firstOrNull()
+    // Keep distinct saved numbers, but do not show duplicate rows when the
+    // Contacts Provider returns the same formatted number more than once.
+    val uniqueNumbers = remember(contactNumbers) {
+        contactNumbers.distinctBy { normalizedPhoneNumber(it.phoneNumber) }
+    }
+    val numberKeys = remember(uniqueNumbers) { uniqueNumbers.map { normalizedPhoneNumber(it.phoneNumber) }.toSet() }
+    val contactHistory = remember(recentCalls, numberKeys) {
+        recentCalls.filter { normalizedPhoneNumber(it.number) in numberKeys }
+            .sortedByDescending { it.date }
+    }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back to contacts", tint = Blue) }
-            Text("Contact", color = Ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+            Text("Contact profile", color = Ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
         }
         if (contact == null) {
             CenterMessage("Contact unavailable", "This contact may have been removed from your address book.")
         } else {
-            Column(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Avatar(contact.displayName)
-                Spacer(Modifier.height(12.dp))
-                Text(contact.displayName, color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold)
-                Text(if (contactNumbers.size == 1) "1 phone number" else "${contactNumbers.size} phone numbers", color = Secondary, fontSize = 13.sp)
-            }
-            Text("PHONE NUMBERS", color = Secondary, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(9.dp))
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                items(contactNumbers, key = { "${it.id}-${it.phoneNumber}" }) { phone ->
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(bottom = 24.dp)
+            ) {
+                item {
+                    Column(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Card).padding(vertical = 22.dp, horizontal = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Avatar(contact.displayName)
+                        Spacer(Modifier.height(12.dp))
+                        Text(contact.displayName, color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                        Text(
+                            if (uniqueNumbers.size == 1) "1 saved number" else "${uniqueNumbers.size} saved numbers",
+                            color = Secondary,
+                            fontSize = 13.sp
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            if (contactHistory.isEmpty()) "No recent call history" else "${contactHistory.size} recent call${if (contactHistory.size == 1) "" else "s"}",
+                            color = Blue,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+                item {
+                    Text("PHONE NUMBERS", color = Secondary, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold)
+                }
+                items(uniqueNumbers, key = { "${it.id}-${normalizedPhoneNumber(it.phoneNumber)}" }) { phone ->
                     val label = ContactsContract.CommonDataKinds.Phone.getTypeLabel(context.resources, phone.phoneType, null).toString()
-                    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Card).padding(horizontal = 15.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Card).padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Column(Modifier.weight(1f)) {
-                            Text(label, color = Secondary, fontSize = 11.sp)
+                            Text(label, color = Secondary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                             Spacer(Modifier.height(4.dp))
-                            Text(phone.phoneNumber, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                            Text(phone.phoneNumber, color = Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                         }
-                        IconButton(onClick = { onDial(phone.phoneNumber) }) { Icon(Icons.Default.Call, contentDescription = "Call ${phone.phoneNumber}", tint = Blue) }
+                        IconButton(onClick = { onMessage(phone.phoneNumber) }) {
+                            Icon(Icons.Default.Sms, contentDescription = "Message ${label.lowercase()} number", tint = Blue)
+                        }
+                        IconButton(onClick = { onDial(phone.phoneNumber) }) {
+                            Icon(Icons.Default.Call, contentDescription = "Call ${label.lowercase()} number", tint = Blue)
+                        }
+                    }
+                }
+                item {
+                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("RECENT CALL HISTORY", color = Secondary, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text("${contactHistory.size}", color = Blue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+                if (contactHistory.isEmpty()) {
+                    item {
+                        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Card).padding(16.dp)) {
+                            Text("No calls with this contact yet", color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Calls will appear here when Android makes the device call history available.", color = Secondary, fontSize = 11.sp)
+                        }
+                    }
+                } else {
+                    items(contactHistory, key = { it.id }) { call ->
+                        val typeLabel = when (call.type) {
+                            CallLog.Calls.INCOMING_TYPE -> "Incoming"
+                            CallLog.Calls.OUTGOING_TYPE -> "Outgoing"
+                            CallLog.Calls.MISSED_TYPE -> "Missed"
+                            CallLog.Calls.REJECTED_TYPE -> "Rejected"
+                            else -> "Call"
+                        }
+                        val typeTint = if (call.type == CallLog.Calls.MISSED_TYPE || call.type == CallLog.Calls.REJECTED_TYPE) Color(0xFFD94B4B) else Blue
+                        val timeLabel = DateUtils.getRelativeTimeSpanString(
+                            call.date,
+                            System.currentTimeMillis(),
+                            DateUtils.MINUTE_IN_MILLIS
+                        ).toString()
+                        Row(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(horizontal = 12.dp, vertical = 11.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(typeLabel + " · " + timeLabel, color = typeTint, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                Text(call.number + " · " + call.simLabel, color = Secondary, fontSize = 10.sp)
+                            }
+                            IconButton(onClick = { onMessage(call.number) }) {
+                                Icon(Icons.Default.Sms, contentDescription = "Message this number", tint = Blue)
+                            }
+                            IconButton(onClick = { onDial(call.number) }) {
+                                Icon(Icons.Default.Call, contentDescription = "Call this number", tint = Blue)
+                            }
+                        }
                     }
                 }
             }
         }
     }
 }
+
 @Composable
 private fun RecentsScreen(
     calls: List<RecentCall>,
