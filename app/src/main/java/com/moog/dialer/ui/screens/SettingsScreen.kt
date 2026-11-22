@@ -101,6 +101,7 @@ import com.moog.dialer.SpamBlockRepository
 import com.moog.dialer.SpamProtectionActivity
 import com.moog.dialer.VoicemailActivity
 import com.moog.dialer.isMoogDefaultPhoneApp
+import com.moog.dialer.BuildConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -284,7 +285,7 @@ internal fun SettingsScreen(
             }
             item {
                 MoogGroupedSection(title = "ABOUT MOOG", footer = "Built for your everyday connections.") {
-                    MoogListRow(title = "Version", subtitle = "MOOG'S DIALER", trailingValue = "0.2.0")
+                    MoogListRow(title = "Version", subtitle = "MOOG'S DIALER", trailingValue = BuildConfig.VERSION_NAME)
                     MoogListRow(
                         title = "Privacy",
                         subtitle = "Contacts and blocklist stay on this device",
