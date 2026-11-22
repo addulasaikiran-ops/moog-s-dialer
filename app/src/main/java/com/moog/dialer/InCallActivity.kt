@@ -1,6 +1,11 @@
 package com.moog.dialer
 
 import android.os.Bundle
+import android.content.Context
+import android.content.pm.PackageManager
+import android.Manifest
+import android.net.Uri
+import android.provider.ContactsContract
 import android.telecom.Call
 import android.telecom.CallAudioState
 import androidx.activity.ComponentActivity
@@ -31,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -46,7 +52,43 @@ import com.moog.dialer.telecom.CallSession
 import com.moog.dialer.SpamBlockRepository
 import com.moog.dialer.ui.theme.MoogColors
 import com.moog.dialer.ui.theme.MoogTheme
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 
+
+
+private suspend fun resolveInCallContactName(context: Context, number: String): String? = withContext(Dispatchers.IO) {
+    if (number.isBlank() || number == "Private number") return@withContext null
+    if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+        return@withContext null
+    }
+    runCatching {
+        val lookupUri = Uri.withAppendedPath(
+            ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+            Uri.encode(number)
+        )
+        context.contentResolver.query(
+            lookupUri,
+            arrayOf(ContactsContract.PhoneLookup.DISPLAY_NAME),
+            null,
+            null,
+            null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) cursor.getString(0)?.takeIf { it.isNotBlank() } else null
+        }
+    }.getOrNull()
+}
+
+private fun formatCallTimer(totalSeconds: Long): String {
+    val safe = totalSeconds.coerceAtLeast(0L)
+    val hours = safe / 3600
+    val minutes = (safe % 3600) / 60
+    val seconds = safe % 60
+    return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, seconds)
+    else "%d:%02d".format(minutes, seconds)
+}
 
 class InCallActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,6 +129,24 @@ class InCallActivity : ComponentActivity() {
                             Text("No active call", color = MoogColors.secondaryLabel)
                         }
                     } else {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val displayName by produceState(initialValue = current.number, current.number) {
+                            value = resolveInCallContactName(context, current.number) ?: current.number
+                        }
+                        var elapsedSeconds by remember(current.call) { mutableLongStateOf(0L) }
+                        LaunchedEffect(current.call, current.state) {
+                            if (current.state == Call.STATE_ACTIVE || current.state == Call.STATE_HOLDING) {
+                                val connectedAt = current.call.details.connectTimeMillis
+                                while (true) {
+                                    elapsedSeconds = if (connectedAt > 0L) {
+                                        ((System.currentTimeMillis() - connectedAt) / 1000L).coerceAtLeast(0L)
+                                    } else 0L
+                                    delay(1000L)
+                                }
+                            } else {
+                                elapsedSeconds = 0L
+                            }
+                        }
                         val incoming = current.state == Call.STATE_RINGING
                         val status = when (current.state) {
                             Call.STATE_RINGING -> "Incoming call"
@@ -111,12 +171,17 @@ class InCallActivity : ComponentActivity() {
                                 Text("MOOG'S DIALER", color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
                                 Spacer(Modifier.height(70.dp))
                                 Box(Modifier.size(112.dp).background(MoogColors.fill, CircleShape), contentAlignment = Alignment.Center) {
-                                    Text(current.number.take(1).uppercase(), color = MoogColors.blue, fontSize = 38.sp, fontWeight = FontWeight.Bold)
+                                    val initials = displayName.trim().split(Regex("\\s+")).take(2).mapNotNull { it.firstOrNull()?.toString() }.joinToString("").uppercase()
+                                    Text(initials.ifBlank { "?" }, color = MoogColors.blue, fontSize = 38.sp, fontWeight = FontWeight.Bold)
                                 }
                                 Spacer(Modifier.height(24.dp))
-                                Text(current.number, color = MoogColors.label, fontSize = 25.sp, fontWeight = FontWeight.Bold)
+                                Text(displayName, color = MoogColors.label, fontSize = 34.sp, fontWeight = FontWeight.SemiBold)
                                 Spacer(Modifier.height(8.dp))
                                 Text(status, color = MoogColors.secondaryLabel, fontSize = 14.sp)
+                                if (current.state == Call.STATE_ACTIVE || current.state == Call.STATE_HOLDING) {
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(formatCallTimer(elapsedSeconds), color = MoogColors.secondaryLabel, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                                }
                                 Spacer(Modifier.height(8.dp))
                                 Text(current.simLabel, color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                                 if (current.conferenceChildCount > 0) {
@@ -219,11 +284,11 @@ private fun RoundCallButton(
         androidx.compose.material3.FilledIconButton(
             onClick = onClick,
             enabled = enabled,
-            modifier = Modifier.size(66.dp),
+            modifier = Modifier.size(72.dp),
             shape = CircleShape,
             colors = IconButtonDefaults.filledIconButtonColors(containerColor = background, contentColor = tint)
         ) {
-            androidx.compose.material3.Icon(icon, contentDescription = label, modifier = Modifier.size(25.dp))
+            androidx.compose.material3.Icon(icon, contentDescription = label, modifier = Modifier.size(28.dp))
         }
         Spacer(Modifier.height(8.dp))
         Text(label, color = if (enabled) MoogColors.secondaryLabel else MoogColors.secondaryLabel.copy(alpha = 0.45f), fontSize = 11.sp)
