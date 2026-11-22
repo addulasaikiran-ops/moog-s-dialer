@@ -116,8 +116,8 @@ private fun SimPreferencePicker(
 
     MoogListRow(
         title = "Preferred SIM",
-        subtitle = "Outgoing calls · Incoming calls use the receiving SIM",
-        trailingValue = selectedLabel,
+        subtitle = "Outgoing calls · $selectedLabel",
+        trailingValue = "Change",
         showChevron = true,
         onClick = { expanded = true }
     )
