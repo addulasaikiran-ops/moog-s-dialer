@@ -61,11 +61,26 @@ Windows PowerShell:
 - [x] In-app preferred-SIM picker with System default / Ask every time and active SIM account choices
 - [x] Outgoing calls pass the selected Telecom PhoneAccountHandle when a preferred SIM is saved
 - [x] Recent-call rows map CallLog phone-account IDs to active SIM/carrier labels
-- [ ] Carrier-specific validation, accessibility, automated checks, device QA, and release build
+### Stabilisation and release readiness
+- [ ] Accessibility pass: TalkBack descriptions and traversal, minimum 48dp touch targets, scalable text, contrast, focus states, and clear permission/error messaging
+- [ ] Automated CI: GitHub Actions workflow for Gradle validation, Android lint, unit tests, and debug APK assembly
+- [ ] Unit tests for T9 matching, SIM account-key mapping, stale preferred-SIM handling, and call-log label fallbacks
+- [ ] Carrier/device QA across physical dual-SIM and eSIM configurations
+- [ ] Validate call waiting, hold/swap, conference support, VoLTE/VoWiFi, roaming, and DSDS/DSDA behaviour where supported
+- [ ] Verify incoming-call presentation, notification/full-screen-intent behaviour, Bluetooth, wired headsets, and audio-route changes
+- [ ] Release readiness: versioning, release signing configuration, privacy/permission review, crash-free smoke test, and release notes
+
+### Planned product upgrades (not implemented yet)
+- [ ] In-call DTMF keypad for IVR and automated phone menus
+- [ ] Advanced call management: second incoming call, call waiting, hold/swap, and conference controls where Android Telecom and the carrier support them
+- [ ] Smart Recents: missed/incoming/outgoing filters, call-history search, contact grouping, and quick callback/message actions
+- [ ] Rich contact profiles: contact-specific call history, quick actions, and improved multi-number handling
+- [ ] User-controlled spam protection: local blocklist, block/unblock controls, and clear suspected-spam indicators; no unsupported claims of live caller identification
+- [ ] Optional local call insights and duplicate-contact assistance, with privacy-first on-device processing
 
 ## Dual-SIM and device compatibility notes
 
-MOOG'S DIALER does not hard-code SIM slot numbers or infer a SIM from carrier names. Android Telecom owns outgoing phone-account selection: when more than one calling account is active, the system can apply the user's preferred account or show the system account chooser. The app deliberately does not force a SIM in `placeCall` extras, because doing so can bypass user/system preferences and behaves inconsistently across OEM builds.
+MOOG'S DIALER does not hard-code SIM slot numbers or infer a SIM from carrier names. Android Telecom exposes the call-capable SIM accounts. Settings lets the user choose a preferred outgoing account or return to **System default / Ask every time**. When MOOG'S DIALER is the default Phone app and the required permissions are granted, outgoing calls pass the selected `PhoneAccountHandle` to `TelecomManager.placeCall`. If MOOG'S DIALER is not the default Phone app, it hands the number to the system dialer and cannot force the selected line.
 
 For incoming and ongoing calls, the app reads the call's `PhoneAccountHandle` and displays the associated Telecom `PhoneAccount` label when available. Some carriers and OEMs expose generic labels or no useful label; in those cases the UI falls back to “SIM” or “SIM not identified” rather than guessing SIM 1/SIM 2.
 
@@ -75,7 +90,20 @@ Settings includes a preferred outgoing SIM selector backed by Android Telecom ca
 
 Recents uses the CallLog phone-account component and account ID columns to associate each historical call with the matching active Telecom SIM label. Old calls from removed SIMs or OEMs that do not expose matching identifiers show a neutral unknown/unavailable label rather than a guessed SIM number. Reading the active SIM account list requires Android's phone-state and phone-number permissions because Telecom protects phone-account metadata. Users can grant both from Settings. Without them, calls still use Android's default routing and SIM labels may be unavailable.
 
-Dual-SIM behavior still requires physical-device testing. Validate both SIMs with outgoing account selection, incoming calls on each line, data/voice concurrency, one SIM busy while the other receives a call, SIM disabled/no service, eSIM plus physical SIM, Bluetooth and wired headsets, and OEM-specific call UI restrictions. Android and carrier capabilities vary by device, region, and subscription.
+Dual-SIM and carrier behaviour still requires physical-device testing. Use the following QA matrix and record device model, Android version, carrier, SIM/eSIM configuration, expected result, actual result, and screenshots/logs for each run:
+
+| Scenario | What to verify |
+| --- | --- |
+| Outgoing SIM selection | Each active SIM can be selected; System default / Ask every time restores Android-managed selection |
+| Incoming calls | Calls arriving on either line display and answer on the receiving line |
+| Dual-SIM concurrency | DSDS/DSDA behaviour, data/voice concurrency, and one SIM busy while the other receives a call |
+| SIM lifecycle | SIM removed, disabled, replaced, no service, and eSIM plus physical SIM |
+| Carrier services | VoLTE, VoWiFi, call waiting, hold/swap, conference calling, and roaming where provisioned |
+| Audio routes | Earpiece, speaker, Bluetooth connect/disconnect, and wired headset during a call |
+| OEM call experience | Incoming-call notifications, full-screen intent restrictions, lock-screen behaviour, and background restrictions |
+| Permissions/default role | Grant, deny, revoke, and re-grant phone permissions; set and remove the default Phone role |
+
+Do not mark carrier validation or device QA complete until each supported scenario has been exercised on real hardware and results have been recorded. Android, OEM, carrier, region, and subscription capabilities vary.
 
 ## Platform and privacy notes
 
@@ -84,3 +112,14 @@ MOOG'S DIALER declares an Android Telecom `InCallService` with incoming and ongo
 The app requests `READ_CONTACTS` only when the user chooses to connect their address book. Contact data is read on-device and favorites are stored locally. The Recents screen has a CallLog repository and UI, but it reads nothing unless Android reports that MOOG'S DIALER holds `ROLE_DIALER` and `READ_CALL_LOG` is granted. The Phone role and call-log flow still need device verification. Android 13+ notification permission and Android 14+ full-screen-intent access affect how prominently incoming calls can be surfaced. Ringtone playback remains managed by the platform.
 
 Emergency calling and carrier-managed behavior remain under Android and the carrier's control.
+
+
+## Accessibility and quality gates
+
+Accessibility is a release requirement, not a cosmetic follow-up. Verify all primary flows with TalkBack, keyboard/switch navigation where applicable, large font and display scaling, adequate text/background contrast, descriptive labels for icon-only controls, and touch targets of at least 48dp. Avoid relying on colour alone to communicate call state or errors.
+
+Automated checks should run from GitHub Actions on pull requests and pushes to the main branch. The intended pipeline is Gradle validation, Android lint, unit tests, and debug APK assembly. Add instrumented tests only where they can run reliably on an Android emulator. A green CI run does not replace carrier or physical-device QA.
+
+## Current verification status
+
+The SIM preference and per-SIM Recents changes are merged into `main`. The stabilisation, accessibility, automated-check, carrier-validation, and device-QA items above are planned work unless explicitly checked off with recorded evidence. No build, automated test suite, or physical-device validation is claimed by this README.
