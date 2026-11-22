@@ -37,6 +37,12 @@
             </intent-filter>
         </service>
         <receiver android:name=".telecom.CallActionReceiver" android:exported="false" />
+        <receiver android:name=".VoicemailNotificationReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.NEW_VOICEMAIL" />
+                <action android:name="android.intent.action.PROVIDER_CHANGED" />
+            </intent-filter>
+        </receiver>
         <activity
             android:name=".MainActivity"
             android:exported="true">
