@@ -106,7 +106,7 @@ class MainActivity : ComponentActivity() {
                             if (isDefaultDialer) {
                                 try {
                                     val extras = Bundle()
-                                    if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+                                    if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_PHONE_NUMBERS) == PackageManager.PERMISSION_GRANTED) {
                                         PhoneAccountRepository.getPreferredHandle(this@MainActivity)?.let { handle ->
                                             extras.putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, handle)
                                         }
@@ -148,6 +148,7 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
         )
     }
     var hasPhoneStatePermission by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) }
+    var hasPhoneNumbersPermission by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_NUMBERS) == PackageManager.PERMISSION_GRANTED) }
     var phoneAccounts by remember { mutableStateOf<List<PhoneAccountOption>>(emptyList()) }
     var selectedPhoneAccountKey by remember { mutableStateOf(PhoneAccountRepository.getPreferredAccountKey(context)) }
     var hasCallLogPermission by remember {
@@ -175,9 +176,10 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
         mutableStateListOf<Long>().apply { addAll(saved) }
     }
 
-    val phoneStatePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        hasPhoneStatePermission = granted
-        if (granted) phoneAccounts = PhoneAccountRepository.getCallAccounts(context)
+    val phoneStatePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+        hasPhoneStatePermission = permissions[Manifest.permission.READ_PHONE_STATE] == true || ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+        hasPhoneNumbersPermission = permissions[Manifest.permission.READ_PHONE_NUMBERS] == true || ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_NUMBERS) == PackageManager.PERMISSION_GRANTED
+        if (hasPhoneStatePermission && hasPhoneNumbersPermission) phoneAccounts = PhoneAccountRepository.getCallAccounts(context)
     }
 
     val callLogPermissionLauncher = rememberLauncherForActivityResult(
@@ -209,8 +211,8 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
         if (hasContactsPermission) contactsViewModel.refresh()
     }
 
-    LaunchedEffect(selectedTab, hasPhoneStatePermission) {
-        if ((selectedTab == Tab.Settings || selectedTab == Tab.Recents) && hasPhoneStatePermission) {
+    LaunchedEffect(selectedTab, hasPhoneStatePermission, hasPhoneNumbersPermission) {
+        if ((selectedTab == Tab.Settings || selectedTab == Tab.Recents) && hasPhoneStatePermission && hasPhoneNumbersPermission) {
             phoneAccounts = PhoneAccountRepository.getCallAccounts(context)
             val activeKeys = phoneAccounts.map { it.key }.toSet()
             if (selectedPhoneAccountKey != null && selectedPhoneAccountKey !in activeKeys) {
@@ -227,7 +229,7 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
         if (selectedTab == Tab.Recents && isDefaultDialer && hasCallLogPermission) {
             loadingRecentCalls = true
             try {
-                recentCalls = CallLogRepository(context.contentResolver, if (hasPhoneStatePermission) PhoneAccountRepository.getAccountLabels(context) else emptyMap()).getRecentCalls()
+                recentCalls = CallLogRepository(context.contentResolver, if (hasPhoneStatePermission && hasPhoneNumbersPermission) PhoneAccountRepository.getAccountLabels(context) else emptyMap()).getRecentCalls()
             } catch (_: SecurityException) {
                 hasCallLogPermission = false
                 recentCalls = emptyList()
@@ -302,7 +304,7 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
                     isDefaultDialer = isDefaultDialer,
                     hasNotificationPermission = hasNotificationPermission,
                     canUseFullScreenIntent = canUseFullScreenIntent,
-                    hasPhoneStatePermission = hasPhoneStatePermission,
+                    hasPhoneStatePermission = hasPhoneStatePermission && hasPhoneNumbersPermission,
                     phoneAccounts = phoneAccounts,
                     selectedPhoneAccountKey = selectedPhoneAccountKey,
                     onSelectPhoneAccount = { key ->
@@ -310,7 +312,7 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
                         PhoneAccountRepository.savePreferredAccount(context, key)
                     },
                     onRequestPhoneState = {
-                        phoneStatePermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
+                        phoneStatePermissionLauncher.launch(arrayOf(Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_PHONE_NUMBERS))
                     },
                     onRequestPhoneRole = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
