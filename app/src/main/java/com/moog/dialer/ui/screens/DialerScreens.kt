@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sms
@@ -592,6 +593,7 @@ private fun FavoritesScreen(
     onOpenContact: (Long) -> Unit,
     onDial: (String) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         ScreenTitle("Favorites", "The people you reach most")
         when {
@@ -602,9 +604,27 @@ private fun FavoritesScreen(
                 onRequestPermission
             )
             contacts.isEmpty() -> CenterMessage("No favorites yet", "Open Contacts and tap the star beside someone to add them here.")
-            else -> LazyColumn {
+            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 items(contacts.groupBy { it.id }.values.map { it.first() }, key = { it.id }) { contact ->
-                    ContactRow(contact, favorite = true, onFavorite = {}, onOpenContact = { onOpenContact(contact.id) }, onDial = { onDial(contact.phoneNumber) }, showFavorite = false)
+                    val numberLabel = ContactsContract.CommonDataKinds.Phone
+                        .getTypeLabel(context.resources, contact.phoneType, null).toString()
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                            .background(MoogColors.surface)
+                            .clickable { onDial(contact.phoneNumber) }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Avatar(contact.displayName)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(contact.displayName, color = MoogColors.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                            Text(numberLabel, color = MoogColors.secondaryLabel, style = MaterialTheme.typography.bodySmall)
+                        }
+                        IconButton(onClick = { onOpenContact(contact.id) }) {
+                            Icon(Icons.Default.Info, contentDescription = "Contact information for ${contact.displayName}", tint = MoogColors.blue)
+                        }
+                    }
                 }
             }
         }
