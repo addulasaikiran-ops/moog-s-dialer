@@ -1,5 +1,6 @@
 package com.moog.dialer.ui.screens
 
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -149,21 +150,21 @@ internal fun RecentsScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
 
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        ScreenTitle("Recents", "Your recent calls")
+        ScreenTitle(stringResource(R.string.screen_recents), stringResource(R.string.your_recent_calls))
         when {
             !isDefaultDialer -> CenterMessage(
-                "Default Phone app required",
-                "Android protects call history. MOOG'S DIALER can show it only after it is eligible for and selected as the default Phone app. Incoming and ongoing call screens are still part of that setup."
+                stringResource(R.string.default_phone_app_required),
+                stringResource(R.string.android_protects_call_history_moog_s_dialer_can_)
             )
             !hasPermission -> PermissionCard(
-                "Allow call history access",
-                "Grant call history permission to show recent incoming, outgoing, and missed calls on this device.",
-                "Allow call history",
+                stringResource(R.string.allow_call_history_access),
+                stringResource(R.string.call_history_permission_rationale),
+                stringResource(R.string.allow_call_history),
                 onRequestPermission
             )
-            loading -> CenterMessage("Loading recent calls…", "Reading call history stored on this device.")
+            loading -> CenterMessage(stringResource(R.string.loading_recent_calls), stringResource(R.string.reading_call_history))
             else -> {
-                SearchField(query, { query = it }, "Search name or phone number")
+                SearchField(query, { query = it }, stringResource(R.string.search_name_or_phone_number))
                 Spacer(Modifier.height(10.dp))
                 Row(
                     Modifier.fillMaxWidth(),
@@ -178,7 +179,7 @@ internal fun RecentsScreen(
                     )
                     Box {
                         IconButton(onClick = { filterMenuExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More call filters", tint = MoogColors.secondaryLabel)
+                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_call_filters), tint = MoogColors.secondaryLabel)
                         }
                         DropdownMenu(
                             expanded = filterMenuExpanded,
@@ -194,7 +195,7 @@ internal fun RecentsScreen(
                                 )
                             }
                             DropdownMenuItem(
-                                text = { Text("All calls") },
+                                text = { Text(stringResource(R.string.all_calls)) },
                                 onClick = {
                                     filter = "All"
                                     filterMenuExpanded = false
@@ -285,7 +286,7 @@ private fun RecentCallRow(
             Text("$callType · $relativeTime", color = callColor, fontSize = 12.sp)
             Text(call.number.ifBlank { "Private number" } + " · " + call.simLabel, color = MoogColors.secondaryLabel, fontSize = 11.sp)
             if (isBlocked) {
-                Text("On your blocklist · blocked by you", color = MoogColors.red, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.blocked_by_you), color = MoogColors.red, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             }
         }
         IconButton(onClick = onOpenDetails) {
