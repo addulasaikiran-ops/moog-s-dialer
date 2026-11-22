@@ -112,7 +112,7 @@ class InCallActivity : ComponentActivity() {
                             } else {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                        RoundCallButton(if (audio.isMuted) "Unmute" else "Mute", Color(0xFFE8EDF5), if (CallSession.isMuted) Icons.Default.MicOff else Icons.Default.Mic, CallInk) {
+                                        RoundCallButton(if (audio.isMuted) "Unmute" else "Mute", Color(0xFFE8EDF5), if (audio.isMuted) Icons.Default.MicOff else Icons.Default.Mic, CallInk) {
                                             CallSession.toggleMute()
                                         }
                                         RoundCallButton(if (audio.isSpeakerOn) "Speaker on" else "Speaker", Color(0xFFE8EDF5), Icons.Default.VolumeUp, CallInk) {
