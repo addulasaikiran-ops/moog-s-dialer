@@ -171,4 +171,8 @@
     <string name="back_to_contacts">Back to contacts</string>
     <string name="message_this_number">Message this number</string>
     <string name="call_this_number">Call this number</string>
+    <string name="refresh_voicemail">Refresh voicemail</string>
+    <string name="cancel">Cancel</string>
+    <string name="search">Search</string>
+    <string name="clear_search">Clear search</string>
 </resources>
