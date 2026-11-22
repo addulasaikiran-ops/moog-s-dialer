@@ -55,6 +55,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.*
 import androidx.compose.runtime.produceState
 import kotlinx.coroutines.launch
@@ -93,6 +94,8 @@ import com.moog.dialer.ui.theme.MoogAppearanceMode
 import com.moog.dialer.ui.theme.MoogAppearancePreferences
 import com.moog.dialer.ui.components.MoogTabBar
 import com.moog.dialer.ui.components.MoogGroupedSection
+import com.moog.dialer.ui.components.MoogLargeTitleScaffold
+import com.moog.dialer.ui.components.MoogListRow
 import com.moog.dialer.ui.components.MoogSegmentedControl
 import com.moog.dialer.ui.components.MoogTabItem
 import com.moog.dialer.ContactsViewModel
@@ -101,6 +104,7 @@ import com.moog.dialer.SpamProtectionActivity
 import com.moog.dialer.VoicemailActivity
 import com.moog.dialer.isMoogDefaultPhoneApp
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SimPreferencePicker(
     phoneAccounts: List<PhoneAccountOption>,
@@ -111,32 +115,51 @@ private fun SimPreferencePicker(
     val selectedLabel = if (selectedKey == null) "System default / Ask every time"
         else phoneAccounts.firstOrNull { it.key == selectedKey }?.label ?: "System default / Ask every time"
 
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MoogColors.surface).padding(14.dp)) {
-        Text("Preferred SIM for outgoing calls", color = MoogColors.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(4.dp))
-        Text("Incoming calls always follow the SIM that receives them.", color = MoogColors.secondaryLabel, fontSize = 11.sp)
-        Spacer(Modifier.height(10.dp))
-        Box {
-            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(selectedLabel, modifier = Modifier.weight(1f), textAlign = TextAlign.Start)
-                Text("⌄", color = MoogColors.secondaryLabel)
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                DropdownMenuItem(
-                    text = { Text("System default / Ask every time") },
+    MoogListRow(
+        title = "Preferred SIM",
+        subtitle = "Outgoing calls · Incoming calls use the receiving SIM",
+        trailingValue = selectedLabel,
+        showChevron = true,
+        onClick = { expanded = true }
+    )
+    if (expanded) {
+        ModalBottomSheet(
+            onDismissRequest = { expanded = false },
+            containerColor = MoogColors.surface
+        ) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+                Text("Choose calling SIM", style = MaterialTheme.typography.titleLarge, color = MoogColors.label)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "This preference applies to outgoing calls when MOOG'S DIALER is the default Phone app.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MoogColors.secondaryLabel
+                )
+                Spacer(Modifier.height(12.dp))
+                MoogListRow(
+                    title = "System default / Ask every time",
+                    subtitle = "Let Android choose the calling account",
+                    trailingValue = if (selectedKey == null) "Selected" else null,
                     onClick = { onSelect(null); expanded = false }
                 )
                 phoneAccounts.forEach { account ->
-                    DropdownMenuItem(
-                        text = { Text(account.label) },
+                    MoogListRow(
+                        title = account.label,
+                        subtitle = "SIM calling account",
+                        trailingValue = if (selectedKey == account.key) "Selected" else null,
                         onClick = { onSelect(account.key); expanded = false }
                     )
                 }
+                if (phoneAccounts.isEmpty()) {
+                    Text(
+                        "Android is not currently exposing any SIM calling accounts.",
+                        color = MoogColors.secondaryLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(vertical = 12.dp)
+                    )
+                }
+                Spacer(Modifier.height(28.dp))
             }
-        }
-        if (phoneAccounts.isEmpty()) {
-            Spacer(Modifier.height(6.dp))
-            Text("No SIM calling accounts are currently exposed by Android.", color = MoogColors.secondaryLabel, fontSize = 11.sp)
         }
     }
 }
@@ -159,95 +182,127 @@ internal fun SettingsScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var appearanceMode by remember(context) { mutableStateOf(MoogAppearancePreferences.get(context)) }
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        ScreenTitle("Settings", "Make calling feel like yours")
-        if (!isDefaultDialer) {
-            Button(onClick = onRequestPhoneRole, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                Text("Set as default Phone app")
-            }
-            Spacer(Modifier.height(10.dp))
-        } else {
-            Text("MOOG'S DIALER is your default Phone app", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(10.dp))
-        }
-        if (!hasNotificationPermission) {
-            OutlinedButton(onClick = onRequestNotifications, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                Text("Allow call notifications")
-            }
-            Spacer(Modifier.height(10.dp))
-        }
-        if (Build.VERSION.SDK_INT >= 34 && !canUseFullScreenIntent) {
-            OutlinedButton(onClick = onRequestFullScreenIntent, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                Text("Allow full-screen incoming calls")
-            }
-            Spacer(Modifier.height(10.dp))
-        }
-        Text("CALLING SIM", color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 1.4.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(8.dp))
-        if (!hasPhoneStatePermission) {
-            PermissionCard(
-                "Choose a calling SIM",
-                "Allow phone-state and phone-number access so MOOG'S DIALER can read SIM calling-account details from Android. Your selection stays on this device.",
-                "Allow SIM access",
-                onRequestPhoneState
-            )
-        } else {
-            SimPreferencePicker(phoneAccounts, selectedPhoneAccountKey, onSelectPhoneAccount)
-        }
-        if (!isDefaultDialer) {
-            Spacer(Modifier.height(6.dp))
-            Text("Set MOOG'S DIALER as the default Phone app for this SIM preference to control outgoing calls. Otherwise Android opens the system dialer.", color = MoogColors.secondaryLabel, fontSize = 11.sp, lineHeight = 16.sp)
-        }
-        Spacer(Modifier.height(14.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenVoicemail),
-            colors = CardDefaults.cardColors(containerColor = MoogColors.surface)
+
+    MoogLargeTitleScaffold(title = "Settings") { padding ->
+        androidx.compose.foundation.lazy.LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Voicemail", color = MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Visual inbox, playback and per-SIM mailbox numbers", color = MoogColors.secondaryLabel, fontSize = 12.sp)
+            item {
+                MoogGroupedSection(title = "APPEARANCE", footer = "System follows your phone's display setting.") {
+                    Column(Modifier.fillMaxWidth().padding(12.dp)) {
+                        MoogSegmentedControl(
+                            options = listOf("System", "Light", "Dark"),
+                            selectedIndex = appearanceMode.ordinal,
+                            onSelected = { index ->
+                                appearanceMode = MoogAppearanceMode.values()[index]
+                                MoogAppearancePreferences.set(context, appearanceMode)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
-                Text("Open  ›", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
-        }
-        Spacer(Modifier.height(8.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenSpamProtection),
-            colors = CardDefaults.cardColors(containerColor = MoogColors.surface)
-        ) {
-            Row(
-                Modifier.fillMaxWidth().padding(15.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Spam protection", color = MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Manage your local blocklist and blocked callers", color = MoogColors.secondaryLabel, fontSize = 12.sp)
+            item {
+                MoogGroupedSection(
+                    title = "CALLING",
+                    footer = if (isDefaultDialer) "MOOG'S DIALER can apply your calling SIM preference." else "Android controls outgoing calls until MOOG'S DIALER is selected as the default Phone app."
+                ) {
+                    if (isDefaultDialer) {
+                        MoogListRow(
+                            title = "Default Phone app",
+                            subtitle = "MOOG'S DIALER is handling phone calls",
+                            trailingValue = "Active"
+                        )
+                    } else {
+                        MoogListRow(
+                            title = "Default Phone app",
+                            subtitle = "Set MOOG'S DIALER as your phone app",
+                            trailingValue = "Set up",
+                            showChevron = true,
+                            onClick = onRequestPhoneRole
+                        )
+                    }
+                    if (hasPhoneStatePermission) {
+                        SimPreferencePicker(phoneAccounts, selectedPhoneAccountKey, onSelectPhoneAccount)
+                    } else {
+                        MoogListRow(
+                            title = "Preferred SIM",
+                            subtitle = "Allow phone access to choose an outgoing SIM",
+                            trailingValue = "Allow",
+                            showChevron = true,
+                            onClick = onRequestPhoneState
+                        )
+                    }
                 }
-                Text("Manage  ›", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
-        }
-        Spacer(Modifier.height(6.dp))
-        MoogGroupedSection(title = "APPEARANCE", footer = "System follows your phone's display setting.") {
-            Column(Modifier.fillMaxWidth().padding(12.dp)) {
-                MoogSegmentedControl(
-                    options = listOf("System", "Light", "Dark"),
-                    selectedIndex = appearanceMode.ordinal,
-                    onSelected = { index ->
-                        appearanceMode = MoogAppearanceMode.values()[index]
-                        MoogAppearancePreferences.set(context, appearanceMode)
-                    },
-                    modifier = Modifier.fillMaxWidth()
+            item {
+                MoogGroupedSection(
+                    title = "INCOMING CALLS",
+                    footer = "Incoming-call presentation also depends on Android and device manufacturer settings."
+                ) {
+                    if (!hasNotificationPermission) {
+                        MoogListRow(
+                            title = "Call notifications",
+                            subtitle = "Allow notifications for incoming and voicemail events",
+                            trailingValue = "Allow",
+                            showChevron = true,
+                            onClick = onRequestNotifications
+                        )
+                    } else {
+                        MoogListRow(
+                            title = "Call notifications",
+                            subtitle = "Notifications are allowed",
+                            trailingValue = "On"
+                        )
+                    }
+                    if (Build.VERSION.SDK_INT >= 34) {
+                        MoogListRow(
+                            title = "Full-screen incoming calls",
+                            subtitle = if (canUseFullScreenIntent) "Full-screen intent access is allowed" else "Allow the incoming call screen to appear over other apps",
+                            trailingValue = if (canUseFullScreenIntent) "On" else "Allow",
+                            showChevron = !canUseFullScreenIntent,
+                            onClick = if (canUseFullScreenIntent) null else onRequestFullScreenIntent
+                        )
+                    }
+                }
+            }
+            item {
+                MoogGroupedSection(title = "CALLING FEATURES") {
+                    MoogListRow(
+                        title = "Voicemail",
+                        subtitle = "Visual inbox, playback and carrier mailbox settings",
+                        showChevron = true,
+                        onClick = onOpenVoicemail
+                    )
+                    MoogListRow(
+                        title = "Spam protection",
+                        subtitle = "Manage your on-device blocked numbers",
+                        showChevron = true,
+                        onClick = onOpenSpamProtection
+                    )
+                }
+            }
+            item {
+                MoogGroupedSection(title = "ABOUT MOOG", footer = "Built for your everyday connections.") {
+                    MoogListRow(title = "Version", subtitle = "MOOG'S DIALER", trailingValue = "0.2.0")
+                    MoogListRow(
+                        title = "Privacy",
+                        subtitle = "Contacts and blocklist stay on this device",
+                        trailingValue = "On-device"
+                    )
+                }
+            }
+            item {
+                Text(
+                    "Calling, SIM selection, voicemail availability and full-screen presentation are provided or controlled by Android Telecom, your carrier and your device manufacturer. Some features require MOOG'S DIALER to be the default Phone app.",
+                    color = MoogColors.secondaryLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    lineHeight = 18.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
             }
         }
-        SettingsRow("Contacts", "On-device contact access")
-        SettingsRow("Calling", "Telecom calling with system dialer fallback")
-        SettingsRow("Privacy", "No account or cloud contact sync")
-        SettingsRow("About", "MOOG'S DIALER · Version 0.2.0")
-        Spacer(Modifier.height(18.dp))
-        Text("BUILT FOR YOUR EVERYDAY CONNECTIONS", color = MoogColors.blue, fontSize = 10.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(8.dp))
-        Text("Call controls are provided by Android Telecom. Incoming-call notifications require notification access; full-screen presentation also depends on Android's notification and full-screen-intent settings.", color = MoogColors.secondaryLabel, fontSize = 12.sp, lineHeight = 18.sp)
     }
 }
