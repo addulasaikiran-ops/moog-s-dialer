@@ -1,14 +1,23 @@
 package com.moog.dialer
 
 import android.Manifest
+import android.app.NotificationManager
 import android.content.Intent
+import android.content.Context
 import android.content.pm.PackageManager
+import android.app.role.RoleManager
+import android.telecom.TelecomManager
+import android.os.Build
+import android.provider.CallLog
+import android.provider.Settings
+import android.text.format.DateUtils
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -49,6 +58,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import android.provider.ContactsContract
 import com.moog.dialer.data.PhoneContact
 import com.moog.dialer.data.T9Search
+import com.moog.dialer.data.CallLogRepository
+import com.moog.dialer.data.RecentCall
+
+private fun isMoogDefaultPhoneApp(context: Context): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_DIALER) == true
+    } else {
+        context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage == context.packageName
+    }
+}
 
 private val Page = Color(0xFFF5F6F8)
 private val Card = Color(0xFFFFFFFF)
@@ -77,10 +96,21 @@ class MainActivity : ComponentActivity() {
                 )
             ) {
                 MoogsDialerApp(
+                    initialNumber = intent?.data?.schemeSpecificPart.orEmpty(),
                     onDial = { value ->
                         val number = value.trim()
                         if (number.isNotEmpty()) {
-                            startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null)))
+                            val isDefaultDialer = isMoogDefaultPhoneApp(this@MainActivity)
+                            if (isDefaultDialer) {
+                                try {
+                                    getSystemService(TelecomManager::class.java)
+                                        .placeCall(Uri.fromParts("tel", number, null), Bundle())
+                                } catch (_: SecurityException) {
+                                    startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null)))
+                                }
+                            } else {
+                                startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null)))
+                            }
                         }
                     }
                 )
@@ -90,9 +120,9 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: ContactsViewModel = viewModel()) {
+private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, contactsViewModel: ContactsViewModel = viewModel()) {
     var selectedTab by remember { mutableStateOf(Tab.Keypad) }
-    var number by remember { mutableStateOf("") }
+    var number by remember { mutableStateOf(initialNumber) }
     var search by remember { mutableStateOf("") }
     var selectedContactId by remember { mutableStateOf<Long?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -104,12 +134,52 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
     }
     val contacts by contactsViewModel.contacts.collectAsState()
     val loading by contactsViewModel.loading.collectAsState()
+    var isDefaultDialer by remember {
+        mutableStateOf(
+            isMoogDefaultPhoneApp(context)
+        )
+    }
+    var hasCallLogPermission by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED)
+    }
+    var hasNotificationPermission by remember {
+        mutableStateOf(
+            Build.VERSION.SDK_INT < 33 ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    var canUseFullScreenIntent by remember {
+        mutableStateOf(
+            Build.VERSION.SDK_INT < 34 ||
+                context.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
+        )
+    }
+    var recentCalls by remember { mutableStateOf<List<RecentCall>>(emptyList()) }
+    var loadingRecentCalls by remember { mutableStateOf(false) }
     val favorites = remember(context) {
         val saved = context.getSharedPreferences("moogs_dialer_preferences", 0)
             .getStringSet("favorite_contact_ids", emptySet())
             .orEmpty()
             .mapNotNull { it.toLongOrNull() }
         mutableStateListOf<Long>().apply { addAll(saved) }
+    }
+
+    val callLogPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasCallLogPermission = granted
+    }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasNotificationPermission = granted
+    }
+    val phoneRoleLauncher = rememberLauncherForActivityResult(StartActivityForResult()) {
+        isDefaultDialer = isMoogDefaultPhoneApp(context)
+    }
+    val fullScreenIntentLauncher = rememberLauncherForActivityResult(StartActivityForResult()) {
+        canUseFullScreenIntent = Build.VERSION.SDK_INT < 34 ||
+            context.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -121,6 +191,26 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
 
     LaunchedEffect(hasContactsPermission) {
         if (hasContactsPermission) contactsViewModel.refresh()
+    }
+
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == Tab.Recents) {
+            isDefaultDialer = isMoogDefaultPhoneApp(context)
+        }
+    }
+
+    LaunchedEffect(selectedTab, isDefaultDialer, hasCallLogPermission) {
+        if (selectedTab == Tab.Recents && isDefaultDialer && hasCallLogPermission) {
+            loadingRecentCalls = true
+            try {
+                recentCalls = CallLogRepository(context.contentResolver).getRecentCalls()
+            } catch (_: SecurityException) {
+                hasCallLogPermission = false
+                recentCalls = emptyList()
+            } finally {
+                loadingRecentCalls = false
+            }
+        }
     }
 
     Column(Modifier.fillMaxSize().background(Page)) {
@@ -176,8 +266,45 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
                     onOpenContact = { selectedContactId = it },
                     onDial = onDial
                 )
-                Tab.Recents -> RecentsScreen()
-                Tab.Settings -> SettingsScreen()
+                Tab.Recents -> RecentsScreen(
+                    calls = recentCalls,
+                    loading = loadingRecentCalls,
+                    isDefaultDialer = isDefaultDialer,
+                    hasPermission = hasCallLogPermission,
+                    onRequestPermission = { callLogPermissionLauncher.launch(Manifest.permission.READ_CALL_LOG) },
+                    onDial = onDial
+                )
+                Tab.Settings -> SettingsScreen(
+                    isDefaultDialer = isDefaultDialer,
+                    hasNotificationPermission = hasNotificationPermission,
+                    canUseFullScreenIntent = canUseFullScreenIntent,
+                    onRequestPhoneRole = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            val manager = context.getSystemService(RoleManager::class.java)
+                            if (manager?.isRoleAvailable(RoleManager.ROLE_DIALER) == true) {
+                                phoneRoleLauncher.launch(manager.createRequestRoleIntent(RoleManager.ROLE_DIALER))
+                            }
+                        } else {
+                            val legacyIntent = Intent(TelecomManager.ACTION_CHANGE_DEFAULT_DIALER).apply {
+                                putExtra(TelecomManager.EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME, context.packageName)
+                            }
+                            phoneRoleLauncher.launch(legacyIntent)
+                        }
+                    },
+                    onRequestNotifications = {
+                        if (Build.VERSION.SDK_INT >= 33) {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    },
+                    onRequestFullScreenIntent = {
+                        if (Build.VERSION.SDK_INT >= 34) {
+                            val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+                                data = Uri.parse("package:${context.packageName}")
+                            }
+                            fullScreenIntentLauncher.launch(intent)
+                        }
+                    }
+                )
             }
         }
         if (selectedContactId == null) {
@@ -423,26 +550,124 @@ private fun ContactDetailScreen(
     }
 }
 @Composable
-private fun RecentsScreen() {
+private fun RecentsScreen(
+    calls: List<RecentCall>,
+    loading: Boolean,
+    isDefaultDialer: Boolean,
+    hasPermission: Boolean,
+    onRequestPermission: () -> Unit,
+    onDial: (String) -> Unit
+) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         ScreenTitle("Recents", "Your recent calls")
-        CenterMessage("Your call history will appear here", "Call history access will be connected after MOOG'S DIALER is configured for Android's Phone role.")
+        when {
+            !isDefaultDialer -> CenterMessage(
+                "Default Phone app required",
+                "Android protects call history. MOOG'S DIALER can show it only after it is eligible for and selected as the default Phone app. Incoming and ongoing call screens are still part of that setup."
+            )
+            !hasPermission -> PermissionCard(
+                "Allow call history access",
+                "Grant call history permission to show recent incoming, outgoing, and missed calls on this device.",
+                "Allow call history",
+                onRequestPermission
+            )
+            loading -> CenterMessage("Loading recent calls…", "Reading call history stored on this device.")
+            calls.isEmpty() -> CenterMessage("No recent calls", "Your incoming, outgoing, and missed calls will appear here.")
+            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                items(calls, key = { it.id }) { call ->
+                    RecentCallRow(call = call, onDial = { onDial(call.number) })
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun SettingsScreen() {
+private fun RecentCallRow(call: RecentCall, onDial: () -> Unit) {
+    val callType = when (call.type) {
+        CallLog.Calls.INCOMING_TYPE -> "Incoming"
+        CallLog.Calls.OUTGOING_TYPE -> "Outgoing"
+        CallLog.Calls.MISSED_TYPE -> "Missed"
+        CallLog.Calls.REJECTED_TYPE -> "Rejected"
+        CallLog.Calls.BLOCKED_TYPE -> "Blocked"
+        CallLog.Calls.VOICEMAIL_TYPE -> "Voicemail"
+        else -> "Call"
+    }
+    val callColor = if (call.type == CallLog.Calls.MISSED_TYPE || call.type == CallLog.Calls.REJECTED_TYPE) {
+        Color(0xFFD94B4B)
+    } else Blue
+    val relativeTime = DateUtils.getRelativeTimeSpanString(
+        call.date,
+        System.currentTimeMillis(),
+        DateUtils.MINUTE_IN_MILLIS
+    ).toString()
+
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card)
+            .clickable(onClick = onDial).padding(horizontal = 12.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.size(38.dp).clip(CircleShape).background(SoftBlue), contentAlignment = Alignment.Center) {
+            Icon(Icons.Default.Call, contentDescription = null, tint = callColor, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(11.dp))
+        Column(Modifier.weight(1f)) {
+            Text(call.displayName.ifBlank { call.number.ifBlank { "Unknown number" } }, color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(3.dp))
+            Text("${callType} · ${relativeTime}", color = callColor, fontSize = 11.sp)
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            if (call.durationSeconds > 0) {
+                Text("${call.durationSeconds / 60}:${(call.durationSeconds % 60).toString().padStart(2, '0')}", color = Secondary, fontSize = 11.sp)
+            }
+            IconButton(onClick = onDial) {
+                Icon(Icons.Default.Call, contentDescription = "Call ${call.number}", tint = Blue, modifier = Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsScreen(
+    isDefaultDialer: Boolean,
+    hasNotificationPermission: Boolean,
+    canUseFullScreenIntent: Boolean,
+    onRequestPhoneRole: () -> Unit,
+    onRequestNotifications: () -> Unit,
+    onRequestFullScreenIntent: () -> Unit
+) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         ScreenTitle("Settings", "Make calling feel like yours")
+        if (!isDefaultDialer) {
+            Button(onClick = onRequestPhoneRole, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                Text("Set as default Phone app")
+            }
+            Spacer(Modifier.height(10.dp))
+        } else {
+            Text("MOOG'S DIALER is your default Phone app", color = Blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(10.dp))
+        }
+        if (!hasNotificationPermission) {
+            OutlinedButton(onClick = onRequestNotifications, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                Text("Allow call notifications")
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+        if (Build.VERSION.SDK_INT >= 34 && !canUseFullScreenIntent) {
+            OutlinedButton(onClick = onRequestFullScreenIntent, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                Text("Allow full-screen incoming calls")
+            }
+            Spacer(Modifier.height(10.dp))
+        }
         SettingsRow("Appearance", "iPhone-inspired light interface")
         SettingsRow("Contacts", "On-device contact access")
-        SettingsRow("Calling", "System dialer handoff is enabled")
+        SettingsRow("Calling", "Telecom calling with system dialer fallback")
         SettingsRow("Privacy", "No account or cloud contact sync")
         SettingsRow("About", "MOOG'S DIALER · Version 0.2.0")
         Spacer(Modifier.height(18.dp))
         Text("BUILT FOR YOUR EVERYDAY CONNECTIONS", color = Blue, fontSize = 10.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
-        Text("This app reads contacts only after you grant permission. Call history and full in-call controls are planned for the Telecom integration milestone.", color = Secondary, fontSize = 12.sp, lineHeight = 18.sp)
+        Text("Call controls are provided by Android Telecom. Incoming-call notifications require notification access; full-screen presentation also depends on Android's notification and full-screen-intent settings.", color = Secondary, fontSize = 12.sp, lineHeight = 18.sp)
     }
 }
 

@@ -52,16 +52,16 @@ Windows PowerShell:
 - [x] Device-local favorites persistence
 - [x] Contact detail screen with all saved phone numbers and type labels
 - [x] Grouped contact list entries with one row per person
-- [ ] Recent calls backed by Android CallLog after Phone role eligibility
-- [ ] Default Phone role and Android Telecom integration
-- [ ] In-call UI through `InCallService`
+- [x] Recent calls backed by Android CallLog, gated by default Phone role and call-log permission
+- [x] Default Phone role request flow and Android Telecom InCallService registration
+- [x] Incoming and ongoing call UI through `InCallService` with answer, decline, end, mute, speaker, and hold controls
 - [ ] Dual-SIM behavior and carrier/device edge cases
 - [ ] Accessibility, automated checks, device QA, and release build
 
 ## Platform and privacy notes
 
-The current app can open Android's system dialer using `ACTION_DIAL`; it is not yet a full replacement Phone app. A true default dialer must meet Android's dialer-role requirements and implement the Telecom `InCallService` contract before requesting `RoleManager.ROLE_DIALER`.
+MOOG'S DIALER declares an Android Telecom `InCallService` with incoming and ongoing call UI. The Settings screen offers a user-initiated default Phone app request (RoleManager on Android 10+, legacy Telecom chooser on earlier supported versions). If the role is granted, outgoing calls are sent through `TelecomManager.placeCall`; otherwise the app hands off to the system dialer with `ACTION_DIAL`.
 
-The app requests `READ_CONTACTS` only when the user chooses to connect their address book. Contact data is read on-device. Favorites are stored locally. Call-log access is intentionally deferred until the app is eligible for the Phone role and the user-facing permission flow is ready.
+The app requests `READ_CONTACTS` only when the user chooses to connect their address book. Contact data is read on-device and favorites are stored locally. The Recents screen now has a CallLog repository and UI, but it reads nothing unless Android reports that MOOG'S DIALER holds `ROLE_DIALER` and `READ_CALL_LOG` is granted. The Phone role and call-log flow still need device verification. Android 13+ notification permission and Android 14+ full-screen-intent access affect how prominently incoming calls can be surfaced. Ringtone playback remains managed by the platform.
 
 Emergency calling and carrier-managed behavior remain under Android and the carrier's control.
