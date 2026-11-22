@@ -1,5 +1,6 @@
 package com.moog.dialer
 
+import androidx.compose.ui.res.stringResource
 import android.os.Bundle
 import android.content.Context
 import android.content.pm.PackageManager
@@ -128,7 +129,7 @@ class InCallActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize(), color = MoogColors.background) {
                     if (current == null) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No active call", color = MoogColors.secondaryLabel)
+                            Text(stringResource(R.string.no_active_call), color = MoogColors.secondaryLabel)
                         }
                     } else {
                         val context = androidx.compose.ui.platform.LocalContext.current
@@ -170,7 +171,7 @@ class InCallActivity : ComponentActivity() {
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("MOOG'S DIALER", color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
+                                Text(stringResource(R.string.moog_brand), color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
                                 Spacer(Modifier.height(70.dp))
                                 Box(Modifier.size(112.dp).background(MoogColors.fill, CircleShape), contentAlignment = Alignment.Center) {
                                     val initials = displayName.trim().split(Regex("\\s+")).take(2).mapNotNull { it.firstOrNull()?.toString() }.joinToString("").uppercase()
@@ -219,7 +220,7 @@ class InCallActivity : ComponentActivity() {
                                             finish()
                                         }
                                     ) {
-                                        Text("Block caller and decline", color = MoogColors.red, fontSize = 13.sp)
+                                        Text(stringResource(R.string.block_caller_decline), color = MoogColors.red, fontSize = 13.sp)
                                     }
                                 }
                             } else {
@@ -363,7 +364,7 @@ private fun WaitingCallCard(
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MoogColors.surface)
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp)) {
-            Text("Call waiting", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.call_waiting), color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(4.dp))
             Text(number, color = MoogColors.label, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Text(simLabel, color = MoogColors.secondaryLabel, fontSize = 11.sp)
@@ -374,14 +375,14 @@ private fun WaitingCallCard(
                     modifier = Modifier.weight(1f),
                     colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(contentColor = MoogColors.red)
                 ) {
-                    Text("Decline")
+                    Text(stringResource(R.string.decline))
                 }
                 androidx.compose.material3.Button(
                     onClick = onAnswer,
                     modifier = Modifier.weight(1f),
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MoogColors.green)
                 ) {
-                    Text("Answer")
+                    Text(stringResource(R.string.answer))
                 }
             }
         }
