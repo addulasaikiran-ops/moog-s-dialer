@@ -746,7 +746,7 @@ private fun SettingsScreen(
         if (!hasPhoneStatePermission) {
             PermissionCard(
                 "Choose a calling SIM",
-                "Allow phone-state access so MOOG'S DIALER can list SIM calling accounts registered with Android. Your selection stays on this device.",
+                "Allow phone-state and phone-number access so MOOG'S DIALER can read SIM calling-account details from Android. Your selection stays on this device.",
                 "Allow SIM access",
                 onRequestPhoneState
             )
