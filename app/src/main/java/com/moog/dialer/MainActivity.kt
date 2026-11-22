@@ -559,7 +559,6 @@ private fun FavoritesScreen(
     }
 }
 
-@Composable
 private fun normalizedPhoneNumber(number: String): String =
     number.filter { it.isDigit() }.let { digits ->
         if (digits.length > 10) digits.takeLast(10) else digits
