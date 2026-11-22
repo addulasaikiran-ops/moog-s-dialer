@@ -185,8 +185,8 @@ private fun VoicemailScreen(onBack: () -> Unit) {
                         player.toggle(message)
                         refreshKey++
                     },
-                    onMarkUnread = {
-                        VoicemailRepository.markRead(context, message, false)
+                    onToggleRead = {
+                        VoicemailRepository.markRead(context, message, !message.isRead)
                         refreshKey++
                     },
                     onDelete = {
@@ -259,7 +259,7 @@ private fun VoicemailMessageCard(
     message: VoicemailMessage,
     player: VoicemailPlaybackController,
     onPlay: () -> Unit,
-    onMarkUnread: () -> Unit,
+    onToggleRead: () -> Unit,
     onDelete: () -> Unit,
     onCallback: () -> Unit
 ) {
@@ -301,7 +301,7 @@ private fun VoicemailMessageCard(
             }
             TextButton(onClick = onCallback, enabled = message.number.isNotBlank()) { Text("Callback") }
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = onMarkUnread) { Text(if (message.isRead) "Unread" else "Read") }
+            TextButton(onClick = onToggleRead) { Text(if (message.isRead) "Mark unread" else "Mark read") }
             IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Delete voicemail", tint = VmMuted) }
         }
         if (!message.hasContent) Text("The voicemail source has not made the audio content available yet.", color = VmMuted, fontSize = 10.sp)
