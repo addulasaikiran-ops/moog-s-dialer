@@ -661,7 +661,7 @@ private fun SettingsScreen(
         }
         SettingsRow("Appearance", "iPhone-inspired light interface")
         SettingsRow("Contacts", "On-device contact access")
-        SettingsRow("Calling", "System dialer handoff is enabled")
+        SettingsRow("Calling", "Telecom calling with system dialer fallback")
         SettingsRow("Privacy", "No account or cloud contact sync")
         SettingsRow("About", "MOOG'S DIALER · Version 0.2.0")
         Spacer(Modifier.height(18.dp))
