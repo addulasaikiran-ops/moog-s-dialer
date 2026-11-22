@@ -100,7 +100,7 @@ private fun SpamProtectionScreen(onBack: () -> Unit) {
                     modifier = Modifier.weight(1f)
                 )
                 TextButton(onClick = { editMode = !editMode }, enabled = blocked.isNotEmpty()) {
-                    Text(if (editMode) "Done" else "Edit")
+                    Text(if (editMode) stringResource(R.string.done) else stringResource(R.string.edit))
                 }
             }
 
@@ -118,7 +118,7 @@ private fun SpamProtectionScreen(onBack: () -> Unit) {
                             title = item,
                             leading = if (editMode) {
                                 {
-                                    Icon(Icons.Default.RemoveCircle, contentDescription = "Unblock $item", tint = MoogColors.red)
+                                    Icon(Icons.Default.RemoveCircle, contentDescription = stringResource(R.string.unblock_person, item), tint = MoogColors.red)
                                 }
                             } else null,
                             trailing = if (editMode) {
