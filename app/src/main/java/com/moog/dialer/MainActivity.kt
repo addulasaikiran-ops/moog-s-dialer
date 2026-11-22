@@ -106,8 +106,10 @@ class MainActivity : ComponentActivity() {
                             if (isDefaultDialer) {
                                 try {
                                     val extras = Bundle()
-                                    PhoneAccountRepository.getPreferredHandle(this@MainActivity)?.let { handle ->
-                                        extras.putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, handle)
+                                    if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+                                        PhoneAccountRepository.getPreferredHandle(this@MainActivity)?.let { handle ->
+                                            extras.putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, handle)
+                                        }
                                     }
                                     getSystemService(TelecomManager::class.java)
                                         .placeCall(Uri.fromParts("tel", number, null), extras)
@@ -748,6 +750,10 @@ private fun SettingsScreen(
             )
         } else {
             SimPreferencePicker(phoneAccounts, selectedPhoneAccountKey, onSelectPhoneAccount)
+        }
+        if (!isDefaultDialer) {
+            Spacer(Modifier.height(6.dp))
+            Text("Set MOOG'S DIALER as the default Phone app for this SIM preference to control outgoing calls. Otherwise Android opens the system dialer.", color = Secondary, fontSize = 11.sp, lineHeight = 16.sp)
         }
         Spacer(Modifier.height(14.dp))
         SettingsRow("Appearance", "iPhone-inspired light interface")
