@@ -275,7 +275,7 @@ private fun VoicemailMessageCard(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(38.dp).clip(CircleShape).background(Color(0xFFEAF3FF)), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(38.dp).clip(CircleShape).background(MoogColors.fill), contentAlignment = Alignment.Center) {
                 Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MoogColors.blue)
             }
             Spacer(Modifier.width(10.dp))
