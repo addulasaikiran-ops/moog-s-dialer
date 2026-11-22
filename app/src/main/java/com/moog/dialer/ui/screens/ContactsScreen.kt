@@ -1,5 +1,6 @@
 package com.moog.dialer.ui.screens
 
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -118,16 +119,16 @@ internal fun ContactsScreen(
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        ScreenTitle("Contacts", "Your people, all in one place")
+        ScreenTitle(stringResource(R.string.screen_contacts), stringResource(R.string.your_people_all_in_one_place))
         if (!hasPermission) {
             PermissionCard(
-                title = "Connect your contacts",
-                body = "Allow access to show and search the contacts stored on this phone. Your contacts stay on your device.",
-                button = "Allow contacts access",
+                title = stringResource(R.string.connect_your_contacts),
+                body = stringResource(R.string.contacts_permission_rationale),
+                button = stringResource(R.string.allow_contacts_access),
                 onClick = onRequestPermission
             )
         } else {
-            SearchField(query, onQueryChange, "Search by name or number")
+            SearchField(query, onQueryChange, stringResource(R.string.search_by_name_or_number))
             Spacer(Modifier.height(12.dp))
             val filtered = contacts.filter { T9Search.matches(it, query) }
                 .groupBy { it.id }
@@ -149,7 +150,7 @@ internal fun ContactsScreen(
                 }
             }
             when {
-                loading -> CenterMessage("Loading contacts…", "Your address book is being read on this device.")
+                loading -> CenterMessage(stringResource(R.string.loading_contacts), stringResource(R.string.your_address_book_is_being_read_on_this_device))
                 filtered.isEmpty() -> CenterMessage(
                     if (query.isBlank()) "No phone contacts found" else "No matches found",
                     if (query.isBlank()) "Contacts with phone numbers will appear here." else "Try another name or number."
