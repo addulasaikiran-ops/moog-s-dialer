@@ -429,14 +429,6 @@ private fun formatDuration(seconds: Long): String {
     return "%d:%02d".format(safe / 60, safe % 60)
 }
 
-private fun isMoogDefaultDialer(context: Context): Boolean = runCatching {
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-        context.getSystemService(android.app.role.RoleManager::class.java)?.isRoleHeld(android.app.role.RoleManager.ROLE_DIALER) == true
-    } else {
-        context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage == context.packageName
-    }
-}.getOrDefault(false)
-
 private fun openVoicemailCall(context: Context, number: String, account: PhoneAccountOption?) {
     if (number.isBlank()) return
     val uri = Uri.fromParts("tel", number.trim(), null)
