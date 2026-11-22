@@ -225,10 +225,7 @@
     <string name="connecting_status">Connecting…</string>
     <string name="connected_status">Connected</string>
     <string name="on_hold_status">On hold</string>
-    <string name="search">Search</string>
-    <string name="clear_search">Clear search</string>
     <string name="back_to_title">‹ %1$s</string>
     <string name="blocklist_empty_title">Your blocklist is empty</string>
     <string name="blocklist_empty_message">Numbers you add here will be rejected when MOOG\\'S DIALER handles incoming calls.</string>
-    <string name="cancel">Cancel</string>
 </resources>
