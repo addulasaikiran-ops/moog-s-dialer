@@ -27,6 +27,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.stickyHeader
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -46,6 +48,7 @@ import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.animation.animateColorAsState
@@ -547,6 +550,9 @@ private fun ContactsScreen(
     onOpenContact: (Long) -> Unit,
     onDial: (String) -> Unit
 ) {
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val haptics = LocalHapticFeedback.current
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         ScreenTitle("Contacts", "Your people, all in one place")
         if (!hasPermission) {
@@ -563,21 +569,80 @@ private fun ContactsScreen(
                 .groupBy { it.id }
                 .values
                 .map { it.first() }
+            val groups = remember(filtered) {
+                filtered.groupBy { contact ->
+                    contact.displayName.firstOrNull()?.uppercaseChar()
+                        ?.takeIf { it in 'A'..'Z' }?.toString() ?: "#"
+                }.toSortedMap(compareBy { key -> if (key == "#") "ZZZ" else key })
+            }
+            val indexPositions = remember(groups) {
+                var position = 0
+                buildMap {
+                    groups.forEach { (letter, members) ->
+                        put(letter, position)
+                        position += members.size + 1
+                    }
+                }
+            }
             when {
                 loading -> CenterMessage("Loading contacts…", "Your address book is being read on this device.")
                 filtered.isEmpty() -> CenterMessage(
                     if (query.isBlank()) "No phone contacts found" else "No matches found",
                     if (query.isBlank()) "Contacts with phone numbers will appear here." else "Try another name or number."
                 )
-                else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    items(filtered, key = { it.id }) { contact ->
-                        ContactRow(
-                            contact = contact,
-                            favorite = favorites.contains(contact.id),
-                            onFavorite = { onToggleFavorite(contact.id) },
-                            onOpenContact = { onOpenContact(contact.id) },
-                            onDial = { onDial(contact.phoneNumber) }
-                        )
+                else -> Box(Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize().padding(end = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        contentPadding = PaddingValues(bottom = 12.dp)
+                    ) {
+                        groups.forEach { (letter, members) ->
+                            stickyHeader(key = "section-$letter") {
+                                Box(
+                                    Modifier.fillMaxWidth().background(MoogColors.background)
+                                        .padding(start = 6.dp, top = 8.dp, bottom = 4.dp)
+                                ) {
+                                    Text(letter, color = MoogColors.secondaryLabel, style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+                            items(members, key = { it.id }) { contact ->
+                                ContactRow(
+                                    contact = contact,
+                                    favorite = favorites.contains(contact.id),
+                                    onFavorite = { onToggleFavorite(contact.id) },
+                                    onOpenContact = { onOpenContact(contact.id) },
+                                    onDial = { onDial(contact.phoneNumber) }
+                                )
+                            }
+                        }
+                        item {
+                            Text(
+                                "${filtered.size} Contacts",
+                                color = MoogColors.secondaryLabel,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                    Column(
+                        Modifier.align(Alignment.CenterEnd).padding(end = 1.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        groups.keys.forEach { letter ->
+                            Text(
+                                letter,
+                                color = MoogColors.blue,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.clickable {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    scope.launch { listState.animateScrollToItem(indexPositions[letter] ?: 0) }
+                                }.padding(vertical = 1.dp, horizontal = 2.dp)
+                            )
+                        }
                     }
                 }
             }
