@@ -82,7 +82,7 @@ internal fun CallDetailScreen(
                 Avatar(name)
                 Spacer(Modifier.height(12.dp))
                 Text(name, color = MoogColors.label, style = MaterialTheme.typography.titleLarge)
-                Text(call.number.ifBlank { "Private number" }, color = MoogColors.secondaryLabel, style = MaterialTheme.typography.bodyMedium)
+                Text(call.number.ifBlank { stringResource(R.string.private_number) }, color = MoogColors.secondaryLabel, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(14.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
                     MoogCircleButton(
