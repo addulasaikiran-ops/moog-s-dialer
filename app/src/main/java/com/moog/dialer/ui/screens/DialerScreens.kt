@@ -446,12 +446,12 @@ internal fun ContactRow(
         }
         if (showFavorite) {
             IconButton(onClick = onFavorite) {
-                Icon(Icons.Default.Favorite, contentDescription = if (favorite) "Remove favorite" else "Add favorite",
+                Icon(Icons.Default.Favorite, contentDescription = if (favorite) stringResource(R.string.remove_favorite) else stringResource(R.string.add_favorite),
                     tint = if (favorite) MoogColors.blue else MoogColors.secondaryLabel.copy(alpha = 0.6f), modifier = Modifier.size(19.dp))
             }
         }
         IconButton(onClick = onDial) {
-            Icon(Icons.Default.Call, contentDescription = "Call ${contact.displayName}", tint = MoogColors.blue, modifier = Modifier.size(19.dp))
+            Icon(Icons.Default.Call, contentDescription = stringResource(R.string.call_person, contact.displayName), tint = MoogColors.blue, modifier = Modifier.size(19.dp))
         }
     }
 }
@@ -483,7 +483,7 @@ internal fun Avatar(name: String, photoUri: String? = null) {
         if (photo != null) {
             Image(
                 bitmap = photo!!.asImageBitmap(),
-                contentDescription = "$name contact photo",
+                contentDescription = stringResource(R.string.contact_photo_description, name),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
