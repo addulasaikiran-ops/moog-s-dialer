@@ -86,7 +86,7 @@ object CallSession {
     }
 
     fun answer(call: Call) {
-        call.answer(VideoProfile.STATE_AUDIO_ONLY)
+        call.answer(call.details.videoState)
     }
 
     fun reject(call: Call) {
