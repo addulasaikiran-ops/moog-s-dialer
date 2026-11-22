@@ -38,45 +38,43 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.moog.dialer.ui.theme.MoogColors
+import com.moog.dialer.ui.theme.MoogTheme
 
-private val SpamBlue = Color(0xFF087CFA)
-private val SpamInk = Color(0xFF17191D)
-private val SpamMuted = Color(0xFF858B96)
-private val SpamPage = Color(0xFFF5F6F8)
 
 class SpamProtectionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = androidx.compose.material3.lightColorScheme(primary = SpamBlue)) {
+            MoogTheme {
                 var number by remember { mutableStateOf("") }
                 var blocked by remember { mutableStateOf(SpamBlockRepository.blockedNumbers(this@SpamProtectionActivity)) }
-                Surface(Modifier.fillMaxSize(), color = SpamPage) {
+                Surface(Modifier.fillMaxSize(), color = MoogColors.background) {
                     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
                         Row(
                             Modifier.fillMaxWidth().padding(top = 18.dp, bottom = 18.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(onClick = { finish() }) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = SpamBlue)
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MoogColors.blue)
                             }
                             Column {
-                                Text("Spam protection", color = SpamInk, fontSize = 23.sp, fontWeight = FontWeight.Bold)
-                                Text("Your personal blocklist", color = SpamMuted, fontSize = 12.sp)
+                                Text("Spam protection", color = MoogColors.label, fontSize = 23.sp, fontWeight = FontWeight.Bold)
+                                Text("Your personal blocklist", color = MoogColors.secondaryLabel, fontSize = 12.sp)
                             }
                         }
-                        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                        Card(colors = CardDefaults.cardColors(containerColor = MoogColors.surface)) {
                             Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                                Text("Add a number to block", color = SpamInk, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Add a number to block", color = MoogColors.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                                 Spacer(Modifier.height(8.dp))
                                 BasicTextField(
                                     value = number,
                                     onValueChange = { number = it },
-                                    modifier = Modifier.fillMaxWidth().background(SpamPage, RoundedCornerShape(12.dp)).padding(14.dp),
+                                    modifier = Modifier.fillMaxWidth().background(MoogColors.background, RoundedCornerShape(12.dp)).padding(14.dp),
                                     singleLine = true,
-                                    textStyle = androidx.compose.ui.text.TextStyle(color = SpamInk, fontSize = 16.sp),
+                                    textStyle = androidx.compose.ui.text.TextStyle(color = MoogColors.label, fontSize = 16.sp),
                                     decorationBox = { inner ->
-                                        if (number.isBlank()) Text("Enter phone number", color = SpamMuted, fontSize = 14.sp)
+                                        if (number.isBlank()) Text("Enter phone number", color = MoogColors.secondaryLabel, fontSize = 14.sp)
                                         inner()
                                     }
                                 )
@@ -95,28 +93,28 @@ class SpamProtectionActivity : ComponentActivity() {
                         }
                         Spacer(Modifier.height(18.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("BLOCKED NUMBERS", color = SpamMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.3.sp, modifier = Modifier.weight(1f))
-                            Text("${blocked.size}", color = SpamBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text("BLOCKED NUMBERS", color = MoogColors.secondaryLabel, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.3.sp, modifier = Modifier.weight(1f))
+                            Text("${blocked.size}", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                         Spacer(Modifier.height(8.dp))
                         if (blocked.isEmpty()) {
-                            Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                            Card(colors = CardDefaults.cardColors(containerColor = MoogColors.surface)) {
                                 Column(Modifier.fillMaxWidth().padding(18.dp)) {
-                                    Text("—", color = SpamMuted, fontSize = 24.sp)
+                                    Text("—", color = MoogColors.secondaryLabel, fontSize = 24.sp)
                                     Spacer(Modifier.height(8.dp))
-                                    Text("Your blocklist is empty", color = SpamInk, fontWeight = FontWeight.SemiBold)
-                                    Text("Numbers you add here will be rejected when they call while MOOG'S DIALER handles incoming calls.", color = SpamMuted, fontSize = 12.sp)
+                                    Text("Your blocklist is empty", color = MoogColors.label, fontWeight = FontWeight.SemiBold)
+                                    Text("Numbers you add here will be rejected when they call while MOOG'S DIALER handles incoming calls.", color = MoogColors.secondaryLabel, fontSize = 12.sp)
                                 }
                             }
                         } else {
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 items(blocked, key = { it }) { item ->
-                                    Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                                    Card(colors = CardDefaults.cardColors(containerColor = MoogColors.surface)) {
                                         Row(
                                             Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(item, color = SpamInk, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                                            Text(item, color = MoogColors.label, fontSize = 15.sp, modifier = Modifier.weight(1f))
                                             OutlinedButton(onClick = {
                                                 SpamBlockRepository.unblock(this@SpamProtectionActivity, item)
                                                 blocked = SpamBlockRepository.blockedNumbers(this@SpamProtectionActivity)
@@ -129,7 +127,7 @@ class SpamProtectionActivity : ComponentActivity() {
                         Spacer(Modifier.height(12.dp))
                         Text(
                             "Only numbers you add are blocked. MOOG'S DIALER does not use a live caller-ID or spam-reputation service. Private or withheld numbers cannot be matched.",
-                            color = SpamMuted,
+                            color = MoogColors.secondaryLabel,
                             fontSize = 11.sp,
                             lineHeight = 16.sp
                         )

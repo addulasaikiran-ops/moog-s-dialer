@@ -1,6 +1,11 @@
 package com.moog.dialer
 
 import android.os.Bundle
+import android.content.Context
+import android.content.pm.PackageManager
+import android.Manifest
+import android.net.Uri
+import android.provider.ContactsContract
 import android.telecom.Call
 import android.telecom.CallAudioState
 import androidx.activity.ComponentActivity
@@ -31,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -44,10 +50,45 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.moog.dialer.telecom.CallSession
 import com.moog.dialer.SpamBlockRepository
+import com.moog.dialer.ui.theme.MoogColors
+import com.moog.dialer.ui.theme.MoogTheme
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 
-private val CallBlue = Color(0xFF087CFA)
-private val CallInk = Color(0xFF17191D)
-private val CallMuted = Color(0xFF858B96)
+
+
+private suspend fun resolveInCallContactName(context: Context, number: String): String? = withContext(Dispatchers.IO) {
+    if (number.isBlank() || number == "Private number") return@withContext null
+    if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+        return@withContext null
+    }
+    runCatching {
+        val lookupUri = Uri.withAppendedPath(
+            ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+            Uri.encode(number)
+        )
+        context.contentResolver.query(
+            lookupUri,
+            arrayOf(ContactsContract.PhoneLookup.DISPLAY_NAME),
+            null,
+            null,
+            null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) cursor.getString(0)?.takeIf { it.isNotBlank() } else null
+        }
+    }.getOrNull()
+}
+
+private fun formatCallTimer(totalSeconds: Long): String {
+    val safe = totalSeconds.coerceAtLeast(0L)
+    val hours = safe / 3600
+    val minutes = (safe % 3600) / 60
+    val seconds = safe % 60
+    return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, seconds)
+    else "%d:%02d".format(minutes, seconds)
+}
 
 class InCallActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +101,7 @@ class InCallActivity : ComponentActivity() {
             window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
         }
         setContent {
-            MaterialTheme(colorScheme = androidx.compose.material3.lightColorScheme(primary = CallBlue)) {
+            MoogTheme(forceDark = true) {
                 var showDtmf by remember { mutableStateOf(false) }
                 val calls by CallSession.calls.collectAsState()
                 val audio by CallSession.audio.collectAsState()
@@ -82,12 +123,30 @@ class InCallActivity : ComponentActivity() {
                     if (calls.isEmpty()) finish()
                 }
 
-                Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF5F6F8)) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MoogColors.background) {
                     if (current == null) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No active call", color = CallMuted)
+                            Text("No active call", color = MoogColors.secondaryLabel)
                         }
                     } else {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val displayName by produceState(initialValue = current.number, current.number) {
+                            value = resolveInCallContactName(context, current.number) ?: current.number
+                        }
+                        var elapsedSeconds by remember(current.call) { mutableLongStateOf(0L) }
+                        LaunchedEffect(current.call, current.state) {
+                            if (current.state == Call.STATE_ACTIVE || current.state == Call.STATE_HOLDING) {
+                                val connectedAt = current.call.details.connectTimeMillis
+                                while (true) {
+                                    elapsedSeconds = if (connectedAt > 0L) {
+                                        ((System.currentTimeMillis() - connectedAt) / 1000L).coerceAtLeast(0L)
+                                    } else 0L
+                                    delay(1000L)
+                                }
+                            } else {
+                                elapsedSeconds = 0L
+                            }
+                        }
                         val incoming = current.state == Call.STATE_RINGING
                         val status = when (current.state) {
                             Call.STATE_RINGING -> "Incoming call"
@@ -109,31 +168,36 @@ class InCallActivity : ComponentActivity() {
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("MOOG'S DIALER", color = CallMuted, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
+                                Text("MOOG'S DIALER", color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
                                 Spacer(Modifier.height(70.dp))
-                                Box(Modifier.size(112.dp).background(Color(0xFFE5F0FF), CircleShape), contentAlignment = Alignment.Center) {
-                                    Text(current.number.take(1).uppercase(), color = CallBlue, fontSize = 38.sp, fontWeight = FontWeight.Bold)
+                                Box(Modifier.size(112.dp).background(MoogColors.fill, CircleShape), contentAlignment = Alignment.Center) {
+                                    val initials = displayName.trim().split(Regex("\\s+")).take(2).mapNotNull { it.firstOrNull()?.toString() }.joinToString("").uppercase()
+                                    Text(initials.ifBlank { "?" }, color = MoogColors.blue, fontSize = 38.sp, fontWeight = FontWeight.Bold)
                                 }
                                 Spacer(Modifier.height(24.dp))
-                                Text(current.number, color = CallInk, fontSize = 25.sp, fontWeight = FontWeight.Bold)
+                                Text(displayName, color = MoogColors.label, fontSize = 34.sp, fontWeight = FontWeight.SemiBold)
                                 Spacer(Modifier.height(8.dp))
-                                Text(status, color = CallMuted, fontSize = 14.sp)
+                                Text(status, color = MoogColors.secondaryLabel, fontSize = 14.sp)
+                                if (current.state == Call.STATE_ACTIVE || current.state == Call.STATE_HOLDING) {
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(formatCallTimer(elapsedSeconds), color = MoogColors.secondaryLabel, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                                }
                                 Spacer(Modifier.height(8.dp))
-                                Text(current.simLabel, color = CallBlue, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                Text(current.simLabel, color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                                 if (current.conferenceChildCount > 0) {
                                     Spacer(Modifier.height(8.dp))
-                                    Text("Conference · ${current.conferenceChildCount} participants", color = CallBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("Conference · ${current.conferenceChildCount} participants", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
 
                             if (incoming) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                                    RoundCallButton("Block & decline", Color(0xFFE5484D), Icons.Default.CallEnd) {
+                                    RoundCallButton("Block & decline", MoogColors.red, Icons.Default.CallEnd) {
                                         SpamBlockRepository.block(this@InCallActivity, current.number)
                                         CallSession.reject(current.call)
                                         finish()
                                     }
-                                    RoundCallButton("Answer", Color(0xFF20A464), Icons.Default.Call) {
+                                    RoundCallButton("Answer", MoogColors.green, Icons.Default.Call) {
                                         CallSession.answer(current.call)
                                     }
                                 }
@@ -149,40 +213,42 @@ class InCallActivity : ComponentActivity() {
                                         Spacer(Modifier.height(16.dp))
                                     }
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                        RoundCallButton(if (audio.isMuted) "Unmute" else "Mute", MoogColors.fill, if (audio.isMuted) Icons.Default.MicOff else Icons.Default.Mic, MoogColors.label) {
+                                            CallSession.toggleMute()
+                                        }
                                         if (canSendDtmf) {
-                                            RoundCallButton(if (showDtmf) "Hide keypad" else "Keypad", Color(0xFFE8EDF5), Icons.Default.Dialpad, CallInk) {
+                                            RoundCallButton(if (showDtmf) "Hide keypad" else "Keypad", MoogColors.fill, Icons.Default.Dialpad, MoogColors.label) {
                                                 showDtmf = !showDtmf
                                                 if (!showDtmf) CallSession.stopDtmfTone()
                                             }
                                         }
-                                        RoundCallButton(if (audio.isMuted) "Unmute" else "Mute", Color(0xFFE8EDF5), if (audio.isMuted) Icons.Default.MicOff else Icons.Default.Mic, CallInk) {
-                                            CallSession.toggleMute()
-                                        }
                                         RoundCallButton(
                                             if (audio.isSpeakerOn) "Speaker on" else "Speaker",
-                                            Color(0xFFE8EDF5),
+                                            MoogColors.fill,
                                             Icons.Default.VolumeUp,
-                                            CallInk,
+                                            MoogColors.label,
                                             enabled = speakerAvailable
                                         ) {
                                             CallSession.toggleSpeaker()
                                         }
-                                        if (current.canHold) {
-                                            RoundCallButton(if (current.state == Call.STATE_HOLDING) "Resume" else "Hold", Color(0xFFE8EDF5), if (current.state == Call.STATE_HOLDING) Icons.Default.PlayArrow else Icons.Default.Pause, CallInk) {
-                                                CallSession.toggleHold(current.call)
-                                            }
-                                        }
                                     }
-                                    if (heldCall != null || conferenceTarget != null) {
+                                    val canSwap = heldCall != null && current.state == Call.STATE_ACTIVE && current.canHold && heldCall.canHold
+                                    val canMerge = conferenceTarget != null && current.state == Call.STATE_ACTIVE
+                                    if (current.canHold || canSwap || canMerge) {
                                         Spacer(Modifier.height(18.dp))
                                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                            if (heldCall != null && current.state == Call.STATE_ACTIVE && current.canHold && heldCall.canHold) {
-                                                RoundCallButton("Swap", Color(0xFFE8EDF5), Icons.Default.PlayArrow, CallInk) {
+                                            if (current.canHold) {
+                                                RoundCallButton(if (current.state == Call.STATE_HOLDING) "Resume" else "Hold", MoogColors.fill, if (current.state == Call.STATE_HOLDING) Icons.Default.PlayArrow else Icons.Default.Pause, MoogColors.label) {
+                                                    CallSession.toggleHold(current.call)
+                                                }
+                                            }
+                                            if (canSwap && heldCall != null) {
+                                                RoundCallButton("Swap", MoogColors.fill, Icons.Default.PlayArrow, MoogColors.label) {
                                                     CallSession.swapCalls(current.call, heldCall.call)
                                                 }
                                             }
-                                            if (conferenceTarget != null && current.state == Call.STATE_ACTIVE) {
-                                                RoundCallButton("Merge", Color(0xFFE8EDF5), Icons.Default.Call, CallInk) {
+                                            if (canMerge && conferenceTarget != null) {
+                                                RoundCallButton("Merge", MoogColors.fill, Icons.Default.Call, MoogColors.label) {
                                                     CallSession.conference(current.call, conferenceTarget.call)
                                                 }
                                             }
@@ -193,7 +259,7 @@ class InCallActivity : ComponentActivity() {
                                         DtmfKeypad(onDigit = { digit -> CallSession.sendDtmfTone(current.call, digit) })
                                     }
                                     Spacer(Modifier.height(38.dp))
-                                    RoundCallButton("End call", Color(0xFFE5484D), Icons.Default.CallEnd) {
+                                    RoundCallButton("End call", MoogColors.red, Icons.Default.CallEnd) {
                                         CallSession.disconnect(current.call)
                                         finish()
                                     }
@@ -220,14 +286,14 @@ private fun RoundCallButton(
         androidx.compose.material3.FilledIconButton(
             onClick = onClick,
             enabled = enabled,
-            modifier = Modifier.size(66.dp),
+            modifier = Modifier.size(72.dp),
             shape = CircleShape,
             colors = IconButtonDefaults.filledIconButtonColors(containerColor = background, contentColor = tint)
         ) {
-            androidx.compose.material3.Icon(icon, contentDescription = label, modifier = Modifier.size(25.dp))
+            androidx.compose.material3.Icon(icon, contentDescription = label, modifier = Modifier.size(28.dp))
         }
         Spacer(Modifier.height(8.dp))
-        Text(label, color = if (enabled) CallMuted else CallMuted.copy(alpha = 0.45f), fontSize = 11.sp)
+        Text(label, color = if (enabled) MoogColors.secondaryLabel else MoogColors.secondaryLabel.copy(alpha = 0.45f), fontSize = 11.sp)
     }
 }
 
@@ -255,7 +321,7 @@ private fun DtmfKeypad(onDigit: (Char) -> Unit) {
                         modifier = Modifier.weight(1f).height(48.dp),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
                     ) {
-                        Text(digit.toString(), color = CallInk, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                        Text(digit.toString(), color = MoogColors.label, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -273,26 +339,26 @@ private fun WaitingCallCard(
 ) {
     androidx.compose.material3.Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color.White)
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MoogColors.surface)
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp)) {
-            Text("Call waiting", color = CallBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text("Call waiting", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(4.dp))
-            Text(number, color = CallInk, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Text(simLabel, color = CallMuted, fontSize = 11.sp)
+            Text(number, color = MoogColors.label, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(simLabel, color = MoogColors.secondaryLabel, fontSize = 11.sp)
             Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 androidx.compose.material3.FilledTonalButton(
                     onClick = onDecline,
                     modifier = Modifier.weight(1f),
-                    colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(contentColor = Color(0xFFE5484D))
+                    colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(contentColor = MoogColors.red)
                 ) {
                     Text("Decline")
                 }
                 androidx.compose.material3.Button(
                     onClick = onAnswer,
                     modifier = Modifier.weight(1f),
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFF20A464))
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MoogColors.green)
                 ) {
                     Text("Answer")
                 }
