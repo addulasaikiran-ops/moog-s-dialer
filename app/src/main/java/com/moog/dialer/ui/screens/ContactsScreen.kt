@@ -152,7 +152,7 @@ internal fun ContactsScreen(
             when {
                 loading -> CenterMessage(stringResource(R.string.loading_contacts), stringResource(R.string.your_address_book_is_being_read_on_this_device))
                 filtered.isEmpty() -> CenterMessage(
-                    if (query.isBlank()) "No phone contacts found" else "No matches found",
+                    if (query.isBlank()) stringResource(R.string.no_phone_contacts_found) else stringResource(R.string.no_contact_matches),
                     if (query.isBlank()) "Contacts with phone numbers will appear here." else "Try another name or number."
                 )
                 else -> Box(Modifier.fillMaxSize()) {
@@ -183,7 +183,7 @@ internal fun ContactsScreen(
                         }
                         item {
                             Text(
-                                "${filtered.size} Contacts",
+                                stringResource(R.string.contacts_count_label, filtered.size),
                                 color = MoogColors.secondaryLabel,
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
