@@ -149,7 +149,7 @@ internal fun ContactDetailScreen(
                         Spacer(Modifier.height(12.dp))
                         Text(contact.displayName, color = MoogColors.label, fontSize = 25.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                         Text(
-                            if (uniqueNumbers.size == 1) "1 saved number" else "${uniqueNumbers.size} saved numbers",
+                            if (uniqueNumbers.size == 1) stringResource(R.string.one_saved_number) else stringResource(R.string.saved_numbers_count, uniqueNumbers.size),
                             color = MoogColors.secondaryLabel,
                             fontSize = 13.sp
                         )
@@ -177,17 +177,17 @@ internal fun ContactDetailScreen(
                             Text(phone.phoneNumber, color = MoogColors.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                         }
                         IconButton(onClick = { onMessage(phone.phoneNumber) }) {
-                            Icon(Icons.Default.Sms, contentDescription = "Message ${label.lowercase()} number", tint = MoogColors.blue)
+                            Icon(Icons.Default.Sms, contentDescription = stringResource(R.string.message_label_number, label.lowercase()), tint = MoogColors.blue)
                         }
                         IconButton(onClick = { onDial(phone.phoneNumber) }) {
-                            Icon(Icons.Default.Call, contentDescription = "Call ${label.lowercase()} number", tint = MoogColors.blue)
+                            Icon(Icons.Default.Call, contentDescription = stringResource(R.string.call_label_number, label.lowercase()), tint = MoogColors.blue)
                         }
                     }
                 }
                 item {
                     Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.recent_call_history), color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                        Text("${contactHistory.size}", color = MoogColors.blue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.contact_history_count, contactHistory.size), color = MoogColors.blue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
                 if (contactHistory.isEmpty()) {
@@ -200,11 +200,11 @@ internal fun ContactDetailScreen(
                 } else {
                     items(contactHistory, key = { it.id }) { call ->
                         val typeLabel = when (call.type) {
-                            CallLog.Calls.INCOMING_TYPE -> "Incoming"
-                            CallLog.Calls.OUTGOING_TYPE -> "Outgoing"
-                            CallLog.Calls.MISSED_TYPE -> "Missed"
-                            CallLog.Calls.REJECTED_TYPE -> "Rejected"
-                            else -> "Call"
+                            CallLog.Calls.INCOMING_TYPE -> stringResource(R.string.incoming)
+                            CallLog.Calls.OUTGOING_TYPE -> stringResource(R.string.outgoing)
+                            CallLog.Calls.MISSED_TYPE -> stringResource(R.string.missed)
+                            CallLog.Calls.REJECTED_TYPE -> stringResource(R.string.rejected)
+                            else -> stringResource(R.string.call)
                         }
                         val typeTint = if (call.type == CallLog.Calls.MISSED_TYPE || call.type == CallLog.Calls.REJECTED_TYPE) MoogColors.red else MoogColors.blue
                         val timeLabel = DateUtils.getRelativeTimeSpanString(
@@ -217,8 +217,8 @@ internal fun ContactDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(Modifier.weight(1f)) {
-                                Text(typeLabel + " · " + timeLabel, color = typeTint, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                                Text(call.number + " · " + call.simLabel, color = MoogColors.secondaryLabel, fontSize = 10.sp)
+                                Text(stringResource(R.string.call_type_time, typeLabel, timeLabel), color = typeTint, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                Text(stringResource(R.string.number_sim, call.number, call.simLabel), color = MoogColors.secondaryLabel, fontSize = 10.sp)
                             }
                             IconButton(onClick = { onMessage(call.number) }) {
                                 Icon(Icons.Default.Sms, contentDescription = stringResource(R.string.message_this_number), tint = MoogColors.blue)
