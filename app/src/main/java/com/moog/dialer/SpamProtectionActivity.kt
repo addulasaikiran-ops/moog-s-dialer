@@ -38,17 +38,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.moog.dialer.ui.theme.MoogColors
+import com.moog.dialer.ui.theme.MoogTheme
 
-private val SpamBlue = Color(0xFF087CFA)
-private val SpamInk = Color(0xFF17191D)
-private val SpamMuted = Color(0xFF858B96)
-private val SpamPage = Color(0xFFF5F6F8)
 
 class SpamProtectionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = androidx.compose.material3.lightColorScheme(primary = SpamBlue)) {
+            MoogTheme {
                 var number by remember { mutableStateOf("") }
                 var blocked by remember { mutableStateOf(SpamBlockRepository.blockedNumbers(this@SpamProtectionActivity)) }
                 Surface(Modifier.fillMaxSize(), color = SpamPage) {
@@ -65,7 +63,7 @@ class SpamProtectionActivity : ComponentActivity() {
                                 Text("Your personal blocklist", color = SpamMuted, fontSize = 12.sp)
                             }
                         }
-                        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                        Card(colors = CardDefaults.cardColors(containerColor = MoogColors.surface)) {
                             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                                 Text("Add a number to block", color = SpamInk, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                                 Spacer(Modifier.height(8.dp))
