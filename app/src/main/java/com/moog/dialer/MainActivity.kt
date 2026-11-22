@@ -2,6 +2,7 @@ package com.moog.dialer
 
 import android.Manifest
 import android.content.Intent
+import android.content.Context
 import android.content.pm.PackageManager
 import android.app.role.RoleManager
 import android.telecom.TelecomManager
@@ -58,6 +59,14 @@ import com.moog.dialer.data.T9Search
 import com.moog.dialer.data.CallLogRepository
 import com.moog.dialer.data.RecentCall
 
+private fun isMoogDefaultPhoneApp(context: Context): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_DIALER) == true
+    } else {
+        context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage == context.packageName
+    }
+}
+
 private val Page = Color(0xFFF5F6F8)
 private val Card = Color(0xFFFFFFFF)
 private val Ink = Color(0xFF17191D)
@@ -85,12 +94,11 @@ class MainActivity : ComponentActivity() {
                 )
             ) {
                 MoogsDialerApp(
+                    initialNumber = intent?.data?.schemeSpecificPart.orEmpty(),
                     onDial = { value ->
                         val number = value.trim()
                         if (number.isNotEmpty()) {
-                            val roleManager = getSystemService(RoleManager::class.java)
-                            val isDefaultDialer = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-                                roleManager?.isRoleHeld(RoleManager.ROLE_DIALER) == true
+                            val isDefaultDialer = isMoogDefaultPhoneApp(this@MainActivity)
                             if (isDefaultDialer) {
                                 try {
                                     getSystemService(TelecomManager::class.java)
@@ -110,9 +118,9 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: ContactsViewModel = viewModel()) {
+private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, contactsViewModel: ContactsViewModel = viewModel()) {
     var selectedTab by remember { mutableStateOf(Tab.Keypad) }
-    var number by remember { mutableStateOf("") }
+    var number by remember { mutableStateOf(initialNumber) }
     var search by remember { mutableStateOf("") }
     var selectedContactId by remember { mutableStateOf<Long?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -126,8 +134,7 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
     val loading by contactsViewModel.loading.collectAsState()
     var isDefaultDialer by remember {
         mutableStateOf(
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-                context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_DIALER) == true
+            isMoogDefaultPhoneApp(context)
         )
     }
     var hasCallLogPermission by remember {
@@ -160,8 +167,7 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
         hasNotificationPermission = granted
     }
     val phoneRoleLauncher = rememberLauncherForActivityResult(StartActivityForResult()) {
-        isDefaultDialer = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-            context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_DIALER) == true
+        isDefaultDialer = isMoogDefaultPhoneApp(context)
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -266,6 +272,11 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
                             if (manager?.isRoleAvailable(RoleManager.ROLE_DIALER) == true) {
                                 phoneRoleLauncher.launch(manager.createRequestRoleIntent(RoleManager.ROLE_DIALER))
                             }
+                        } else {
+                            val legacyIntent = Intent(TelecomManager.ACTION_CHANGE_DEFAULT_DIALER).apply {
+                                putExtra(TelecomManager.EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME, context.packageName)
+                            }
+                            phoneRoleLauncher.launch(legacyIntent)
                         }
                     },
                     onRequestNotifications = {
