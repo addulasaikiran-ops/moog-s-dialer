@@ -12,7 +12,8 @@ class ContactsRepository(private val contentResolver: ContentResolver) {
             ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
             ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
             ContactsContract.CommonDataKinds.Phone.NUMBER,
-            ContactsContract.CommonDataKinds.Phone.PHOTO_THUMBNAIL_URI
+            ContactsContract.CommonDataKinds.Phone.PHOTO_THUMBNAIL_URI,
+            ContactsContract.CommonDataKinds.Phone.TYPE
         )
         contentResolver.query(
             ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
@@ -25,6 +26,7 @@ class ContactsRepository(private val contentResolver: ContentResolver) {
             val nameColumn = cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
             val numberColumn = cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
             val photoColumn = cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.PHOTO_THUMBNAIL_URI)
+            val typeColumn = cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.TYPE)
             while (cursor.moveToNext()) {
                 val name = cursor.getString(nameColumn)?.trim().orEmpty()
                 val number = cursor.getString(numberColumn)?.trim().orEmpty()
@@ -33,7 +35,8 @@ class ContactsRepository(private val contentResolver: ContentResolver) {
                         id = cursor.getLong(idColumn),
                         displayName = name,
                         phoneNumber = number,
-                        photoUri = cursor.getString(photoColumn)
+                        photoUri = cursor.getString(photoColumn),
+                        phoneType = cursor.getInt(typeColumn)
                     )
                 }
             }

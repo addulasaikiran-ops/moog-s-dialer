@@ -50,7 +50,8 @@ Windows PowerShell:
 - [x] Contacts Provider repository and runtime permission rationale
 - [x] T9-style matching for contact names and phone numbers
 - [x] Device-local favorites persistence
-- [ ] Contact detail screen and multi-number contact handling
+- [x] Contact detail screen with all saved phone numbers and type labels
+- [x] Grouped contact list entries with one row per person
 - [ ] Recent calls backed by Android CallLog after Phone role eligibility
 - [ ] Default Phone role and Android Telecom integration
 - [ ] In-call UI through `InCallService`
