@@ -487,7 +487,7 @@ internal fun SettingsRow(title: String, detail: String) {
 }
 
 @Composable
-internal fun BottomTabs(selected: Tab, onSelect: (Tab) -> Unit) {
+private fun BottomTabs(selected: Tab, onSelect: (Tab) -> Unit) {
     val items = listOf(
         MoogTabItem(Tab.Favorites.name, Tab.Favorites.label, Icons.Default.Favorite),
         MoogTabItem(Tab.Recents.name, Tab.Recents.label, Icons.Default.History),
