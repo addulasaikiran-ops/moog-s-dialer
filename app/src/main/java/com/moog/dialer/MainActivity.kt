@@ -452,7 +452,7 @@ private fun KeypadScreen(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     row.forEach { (digit, letters) ->
                         Column(
-                            Modifier.weight(1f).height(66.dp).clip(CircleShape).background(Card)
+                            Modifier.weight(1f).height(66.dp).clip(CircleShape).background(MoogColors.surface)
                                 .clickable { onNumberChange(number + digit) },
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
@@ -592,7 +592,7 @@ private fun ContactDetailScreen(
             ) {
                 item {
                     Column(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Card).padding(vertical = 22.dp, horizontal = 16.dp),
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(MoogColors.surface).padding(vertical = 22.dp, horizontal = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Avatar(contact.displayName)
@@ -618,7 +618,7 @@ private fun ContactDetailScreen(
                 items(uniqueNumbers, key = { "${it.id}-${normalizedPhoneNumber(it.phoneNumber)}" }) { phone ->
                     val label = ContactsContract.CommonDataKinds.Phone.getTypeLabel(context.resources, phone.phoneType, null).toString()
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Card).padding(horizontal = 14.dp, vertical = 12.dp),
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MoogColors.surface).padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
@@ -642,7 +642,7 @@ private fun ContactDetailScreen(
                 }
                 if (contactHistory.isEmpty()) {
                     item {
-                        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Card).padding(16.dp)) {
+                        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MoogColors.surface).padding(16.dp)) {
                             Text("No calls with this contact yet", color = MoogColors.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                             Text("Calls will appear here when Android makes the device call history available.", color = MoogColors.secondaryLabel, fontSize = 11.sp)
                         }
@@ -663,7 +663,7 @@ private fun ContactDetailScreen(
                             DateUtils.MINUTE_IN_MILLIS
                         ).toString()
                         Row(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).padding(horizontal = 12.dp, vertical = 11.dp),
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(MoogColors.surface).padding(horizontal = 12.dp, vertical = 11.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(Modifier.weight(1f)) {
@@ -821,7 +821,7 @@ private fun RecentCallRow(
     ).toString()
 
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card)
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(MoogColors.surface)
             .clickable(onClick = onDial).padding(horizontal = 10.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -860,7 +860,7 @@ private fun SimPreferencePicker(
     val selectedLabel = if (selectedKey == null) "System default / Ask every time"
         else phoneAccounts.firstOrNull { it.key == selectedKey }?.label ?: "System default / Ask every time"
 
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Card).padding(14.dp)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MoogColors.surface).padding(14.dp)) {
         Text("Preferred SIM for outgoing calls", color = MoogColors.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(4.dp))
         Text("Incoming calls always follow the SIM that receives them.", color = MoogColors.secondaryLabel, fontSize = 11.sp)
@@ -1030,7 +1030,7 @@ private fun ContactRow(
     showFavorite: Boolean = true
 ) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card).clickable(onClick = onOpenContact).padding(horizontal = 11.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(MoogColors.surface).clickable(onClick = onOpenContact).padding(horizontal = 11.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Avatar(contact.displayName)
@@ -1062,7 +1062,7 @@ private fun Avatar(name: String) {
 
 @Composable
 private fun PermissionCard(title: String, body: String, button: String, onClick: () -> Unit) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Card).padding(20.dp)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(MoogColors.surface).padding(20.dp)) {
         Icon(Icons.Default.Contacts, contentDescription = null, tint = MoogColors.blue, modifier = Modifier.size(26.dp))
         Spacer(Modifier.height(12.dp))
         Text(title, color = MoogColors.label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
@@ -1108,7 +1108,7 @@ private fun BottomTabs(selected: Tab, onSelect: (Tab) -> Unit) {
         Tab.Settings to Icons.Default.Settings
     )
     Row(
-        Modifier.fillMaxWidth().navigationBarsPadding().background(Card).padding(horizontal = 5.dp, vertical = 8.dp),
+        Modifier.fillMaxWidth().navigationBarsPadding().background(MoogColors.surface).padding(horizontal = 5.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
