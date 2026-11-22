@@ -1270,7 +1270,7 @@ private fun Avatar(name: String, photoUri: String? = null) {
         value = withContext(Dispatchers.IO) {
             photoUri?.let { uri ->
                 ContactPhotoCache.get(uri) ?: runCatching {
-                    context.contentResolver.openInputStream(Uri.parse(uri))?.use(BitmapFactory::decodeStream)
+                    context.contentResolver.openInputStream(Uri.parse(uri))?.use { stream -> BitmapFactory.decodeStream(stream) }
                 }.getOrNull()?.also { ContactPhotoCache.put(uri, it) }
             }
         }
