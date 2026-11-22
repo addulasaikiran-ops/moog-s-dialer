@@ -706,6 +706,7 @@ private fun RecentsScreen(
 ) {
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("All") }
+    var spamRefresh by remember { mutableStateOf(0) }
     val filteredCalls = remember(calls, query, filter) {
         calls.filter { call ->
             val matchesFilter = when (filter) {
@@ -777,8 +778,17 @@ private fun RecentsScreen(
                                 }
                             }
                             items(contactCalls, key = { it.id }) { call ->
+                                val blockedByUser = remember(call.number, spamRefresh) {
+                                    SpamBlockRepository.isBlocked(context, call.number)
+                                }
                                 RecentCallRow(
                                     call = call,
+                                    isBlocked = blockedByUser,
+                                    onToggleBlock = {
+                                        if (blockedByUser) SpamBlockRepository.unblock(context, call.number)
+                                        else SpamBlockRepository.block(context, call.number)
+                                        spamRefresh++
+                                    },
                                     onDial = { onDial(call.number) },
                                     onMessage = {
                                         if (call.number.isNotBlank()) {
@@ -796,7 +806,13 @@ private fun RecentsScreen(
 }
 
 @Composable
-private fun RecentCallRow(call: RecentCall, onDial: () -> Unit, onMessage: () -> Unit) {
+private fun RecentCallRow(
+    call: RecentCall,
+    isBlocked: Boolean,
+    onToggleBlock: () -> Unit,
+    onDial: () -> Unit,
+    onMessage: () -> Unit
+) {
     val callType = when (call.type) {
         CallLog.Calls.INCOMING_TYPE -> "Incoming"
         CallLog.Calls.OUTGOING_TYPE -> "Outgoing"
@@ -829,6 +845,12 @@ private fun RecentCallRow(call: RecentCall, onDial: () -> Unit, onMessage: () ->
             Spacer(Modifier.height(3.dp))
             Text("${callType} · ${relativeTime}", color = callColor, fontSize = 11.sp)
             Text(call.number.ifBlank { "Private number" } + " · " + call.simLabel, color = Secondary, fontSize = 10.sp)
+            if (isBlocked) {
+                Text("On your blocklist · blocked by you", color = Color(0xFFD94B4B), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+        TextButton(onClick = onToggleBlock, enabled = call.number.isNotBlank()) {
+            Text(if (isBlocked) "Unblock" else "Block", fontSize = 10.sp)
         }
         IconButton(onClick = onMessage, enabled = call.number.isNotBlank()) {
             Icon(Icons.Default.Sms, contentDescription = "Message ${call.number}", tint = Blue, modifier = Modifier.size(18.dp))
