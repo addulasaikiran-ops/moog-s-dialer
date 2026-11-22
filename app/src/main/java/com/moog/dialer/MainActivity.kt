@@ -354,6 +354,9 @@ private fun MoogsDialerApp(initialNumber: String, onDial: (String) -> Unit, cont
                             }
                             fullScreenIntentLauncher.launch(intent)
                         }
+                    },
+                    onOpenSpamProtection = {
+                        context.startActivity(Intent(context, SpamProtectionActivity::class.java))
                     }
                 )
             }
@@ -888,7 +891,8 @@ private fun SettingsScreen(
     onRequestPhoneState: () -> Unit,
     onRequestPhoneRole: () -> Unit,
     onRequestNotifications: () -> Unit,
-    onRequestFullScreenIntent: () -> Unit
+    onRequestFullScreenIntent: () -> Unit,
+    onOpenSpamProtection: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         ScreenTitle("Settings", "Make calling feel like yours")
@@ -930,6 +934,22 @@ private fun SettingsScreen(
             Text("Set MOOG'S DIALER as the default Phone app for this SIM preference to control outgoing calls. Otherwise Android opens the system dialer.", color = Secondary, fontSize = 11.sp, lineHeight = 16.sp)
         }
         Spacer(Modifier.height(14.dp))
+        Card(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenSpamProtection),
+            colors = CardDefaults.cardColors(containerColor = Card)
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(15.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Spam protection", color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Manage your local blocklist and blocked callers", color = Secondary, fontSize = 12.sp)
+                }
+                Text("Manage  ›", color = Blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+        Spacer(Modifier.height(6.dp))
         SettingsRow("Appearance", "iPhone-inspired light interface")
         SettingsRow("Contacts", "On-device contact access")
         SettingsRow("Calling", "Telecom calling with system dialer fallback")
