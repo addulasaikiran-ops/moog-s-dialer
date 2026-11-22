@@ -228,4 +228,8 @@
     <string name="back_to_title">‹ %1$s</string>
     <string name="blocklist_empty_title">Your blocklist is empty</string>
     <string name="blocklist_empty_message">Numbers you add here will be rejected when MOOG\\'S DIALER handles incoming calls.</string>
+    <string name="no_phone_contacts_found">No phone contacts found</string>
+    <string name="no_contact_matches">No matches found</string>
+    <string name="contacts_count_label">%1$d Contacts</string>
+    <string name="duration_minutes_seconds">%1$d:%2$02d</string>
 </resources>
