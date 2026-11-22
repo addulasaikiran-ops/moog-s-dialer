@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
@@ -72,11 +71,12 @@ class InCallActivity : ComponentActivity() {
                     ?: calls.firstOrNull { it.state == Call.STATE_RINGING }
                 val waitingCall = calls.firstOrNull { it.state == Call.STATE_RINGING && it.call !== current?.call }
                 val heldCall = calls.firstOrNull { it.state == Call.STATE_HOLDING && it.call !== current?.call }
-                val conferenceTarget = current?.conferenceableCalls?.firstOrNull { candidate ->
-                    calls.any { it.call === candidate }
-                } ?: calls.firstOrNull { entry ->
-                    entry.call !== current?.call && current != null && current.call in entry.conferenceableCalls
-                }
+                val conferenceTarget = current?.conferenceableCalls
+                    ?.firstOrNull { candidate -> calls.any { it.call === candidate } }
+                    ?.let { candidate -> calls.firstOrNull { it.call === candidate } }
+                    ?: calls.firstOrNull { entry ->
+                        entry.call !== current?.call && current != null && current.call in entry.conferenceableCalls
+                    }
 
                 LaunchedEffect(calls.isEmpty()) {
                     if (calls.isEmpty()) finish()
