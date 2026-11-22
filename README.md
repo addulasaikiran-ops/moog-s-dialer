@@ -52,7 +52,7 @@ Windows PowerShell:
 - [x] Device-local favorites persistence
 - [x] Contact detail screen with all saved phone numbers and type labels
 - [x] Grouped contact list entries with one row per person
-- [ ] Recent calls backed by Android CallLog after Phone role eligibility
+- [x] Recent calls backed by Android CallLog, gated by default Phone role and call-log permission
 - [ ] Default Phone role and Android Telecom integration
 - [ ] In-call UI through `InCallService`
 - [ ] Dual-SIM behavior and carrier/device edge cases
