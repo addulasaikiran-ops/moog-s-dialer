@@ -3,6 +3,10 @@ package com.moog.dialer
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.app.role.RoleManager
+import android.os.Build
+import android.provider.CallLog
+import android.text.format.DateUtils
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -49,6 +53,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import android.provider.ContactsContract
 import com.moog.dialer.data.PhoneContact
 import com.moog.dialer.data.T9Search
+import com.moog.dialer.data.CallLogRepository
+import com.moog.dialer.data.RecentCall
 
 private val Page = Color(0xFFF5F6F8)
 private val Card = Color(0xFFFFFFFF)
@@ -104,12 +110,27 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
     }
     val contacts by contactsViewModel.contacts.collectAsState()
     val loading by contactsViewModel.loading.collectAsState()
+    val isDefaultDialer = remember(context) {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            context.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_DIALER) == true
+    }
+    var hasCallLogPermission by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED)
+    }
+    var recentCalls by remember { mutableStateOf<List<RecentCall>>(emptyList()) }
+    var loadingRecentCalls by remember { mutableStateOf(false) }
     val favorites = remember(context) {
         val saved = context.getSharedPreferences("moogs_dialer_preferences", 0)
             .getStringSet("favorite_contact_ids", emptySet())
             .orEmpty()
             .mapNotNull { it.toLongOrNull() }
         mutableStateListOf<Long>().apply { addAll(saved) }
+    }
+
+    val callLogPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasCallLogPermission = granted
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -121,6 +142,14 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
 
     LaunchedEffect(hasContactsPermission) {
         if (hasContactsPermission) contactsViewModel.refresh()
+    }
+
+    LaunchedEffect(selectedTab, isDefaultDialer, hasCallLogPermission) {
+        if (selectedTab == Tab.Recents && isDefaultDialer && hasCallLogPermission) {
+            loadingRecentCalls = true
+            recentCalls = CallLogRepository(context.contentResolver).getRecentCalls()
+            loadingRecentCalls = false
+        }
     }
 
     Column(Modifier.fillMaxSize().background(Page)) {
@@ -176,7 +205,14 @@ private fun MoogsDialerApp(onDial: (String) -> Unit, contactsViewModel: Contacts
                     onOpenContact = { selectedContactId = it },
                     onDial = onDial
                 )
-                Tab.Recents -> RecentsScreen()
+                Tab.Recents -> RecentsScreen(
+                    calls = recentCalls,
+                    loading = loadingRecentCalls,
+                    isDefaultDialer = isDefaultDialer,
+                    hasPermission = hasCallLogPermission,
+                    onRequestPermission = { callLogPermissionLauncher.launch(Manifest.permission.READ_CALL_LOG) },
+                    onDial = onDial
+                )
                 Tab.Settings -> SettingsScreen()
             }
         }
@@ -423,10 +459,80 @@ private fun ContactDetailScreen(
     }
 }
 @Composable
-private fun RecentsScreen() {
+private fun RecentsScreen(
+    calls: List<RecentCall>,
+    loading: Boolean,
+    isDefaultDialer: Boolean,
+    hasPermission: Boolean,
+    onRequestPermission: () -> Unit,
+    onDial: (String) -> Unit
+) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         ScreenTitle("Recents", "Your recent calls")
-        CenterMessage("Your call history will appear here", "Call history access will be connected after MOOG'S DIALER is configured for Android's Phone role.")
+        when {
+            !isDefaultDialer -> CenterMessage(
+                "Default Phone app required",
+                "Android protects call history. MOOG'S DIALER can show it only after it is eligible for and selected as the default Phone app. Incoming and ongoing call screens are still part of that setup."
+            )
+            !hasPermission -> PermissionCard(
+                "Allow call history access",
+                "Grant call history permission to show recent incoming, outgoing, and missed calls on this device.",
+                "Allow call history",
+                onRequestPermission
+            )
+            loading -> CenterMessage("Loading recent calls…", "Reading call history stored on this device.")
+            calls.isEmpty() -> CenterMessage("No recent calls", "Your incoming, outgoing, and missed calls will appear here.")
+            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                items(calls, key = { it.id }) { call ->
+                    RecentCallRow(call = call, onDial = { onDial(call.number) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentCallRow(call: RecentCall, onDial: () -> Unit) {
+    val callType = when (call.type) {
+        CallLog.Calls.INCOMING_TYPE -> "Incoming"
+        CallLog.Calls.OUTGOING_TYPE -> "Outgoing"
+        CallLog.Calls.MISSED_TYPE -> "Missed"
+        CallLog.Calls.REJECTED_TYPE -> "Rejected"
+        CallLog.Calls.BLOCKED_TYPE -> "Blocked"
+        CallLog.Calls.VOICEMAIL_TYPE -> "Voicemail"
+        else -> "Call"
+    }
+    val callColor = if (call.type == CallLog.Calls.MISSED_TYPE || call.type == CallLog.Calls.REJECTED_TYPE) {
+        Color(0xFFD94B4B)
+    } else Blue
+    val relativeTime = DateUtils.getRelativeTimeSpanString(
+        call.date,
+        System.currentTimeMillis(),
+        DateUtils.MINUTE_IN_MILLIS
+    ).toString()
+
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card)
+            .clickable(onClick = onDial).padding(horizontal = 12.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.size(38.dp).clip(CircleShape).background(SoftBlue), contentAlignment = Alignment.Center) {
+            Icon(Icons.Default.Call, contentDescription = null, tint = callColor, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(11.dp))
+        Column(Modifier.weight(1f)) {
+            Text(call.displayName.ifBlank { call.number.ifBlank { "Unknown number" } }, color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(3.dp))
+            Text("${callType} · ${relativeTime}", color = callColor, fontSize = 11.sp)
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            if (call.durationSeconds > 0) {
+                Text("${call.durationSeconds / 60}:${(call.durationSeconds % 60).toString().padStart(2, '0')}", color = Secondary, fontSize = 11.sp)
+            }
+            IconButton(onClick = onDial) {
+                Icon(Icons.Default.Call, contentDescription = "Call ${call.number}", tint = Blue, modifier = Modifier.size(18.dp))
+            }
+        }
     }
 }
 
