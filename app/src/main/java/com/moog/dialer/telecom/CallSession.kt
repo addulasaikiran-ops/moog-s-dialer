@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+data class CallAudioUiState(val isMuted: Boolean = false, val isSpeakerOn: Boolean = false)
+
 data class CallUiEntry(
     val call: Call,
     val number: String,
@@ -19,6 +21,8 @@ object CallSession {
     private val callbacks = LinkedHashMap<Call, Call.Callback>()
     private val mutableCalls = MutableStateFlow<List<CallUiEntry>>(emptyList())
     val calls: StateFlow<List<CallUiEntry>> = mutableCalls.asStateFlow()
+    private val mutableAudio = MutableStateFlow(CallAudioUiState())
+    val audio: StateFlow<CallAudioUiState> = mutableAudio.asStateFlow()
 
     @Volatile private var service: MoogInCallService? = null
     @Volatile var isMuted: Boolean = false
@@ -26,6 +30,7 @@ object CallSession {
     @Volatile var isSpeakerOn: Boolean = false
         private set
 
+    @Synchronized
     fun attach(owner: MoogInCallService, call: Call) {
         service = owner
         val callback = object : Call.Callback() {
@@ -60,6 +65,9 @@ object CallSession {
         if (entries.isEmpty()) {
             service?.clearCallNotification()
             service = null
+            isMuted = false
+            isSpeakerOn = false
+            mutableAudio.value = CallAudioUiState()
         } else {
             service?.refreshCallNotification()
         }
@@ -96,18 +104,21 @@ object CallSession {
     fun toggleMute() {
         isMuted = !isMuted
         service?.setMuted(isMuted)
+        mutableAudio.value = CallAudioUiState(isMuted, isSpeakerOn)
     }
 
     fun toggleSpeaker() {
         val nextRoute = if (isSpeakerOn) CallAudioState.ROUTE_EARPIECE else CallAudioState.ROUTE_SPEAKER
         service?.setAudioRoute(nextRoute)
         isSpeakerOn = !isSpeakerOn
+        mutableAudio.value = CallAudioUiState(isMuted, isSpeakerOn)
     }
 
     fun updateAudioState(state: CallAudioState?) {
         if (state != null) {
             isMuted = state.isMuted
             isSpeakerOn = state.route == CallAudioState.ROUTE_SPEAKER
+            mutableAudio.value = CallAudioUiState(isMuted, isSpeakerOn)
         }
     }
 }
