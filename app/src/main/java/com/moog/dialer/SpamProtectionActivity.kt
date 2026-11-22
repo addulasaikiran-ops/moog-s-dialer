@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Block
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -103,7 +102,7 @@ class SpamProtectionActivity : ComponentActivity() {
                         if (blocked.isEmpty()) {
                             Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
                                 Column(Modifier.fillMaxWidth().padding(18.dp)) {
-                                    Icon(Icons.Default.Block, contentDescription = null, tint = SpamMuted)
+                                    Text("—", color = SpamMuted, fontSize = 24.sp)
                                     Spacer(Modifier.height(8.dp))
                                     Text("Your blocklist is empty", color = SpamInk, fontWeight = FontWeight.SemiBold)
                                     Text("Numbers you add here will be rejected when they call while MOOG'S DIALER handles incoming calls.", color = SpamMuted, fontSize = 12.sp)
