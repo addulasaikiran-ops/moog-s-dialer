@@ -219,4 +219,5 @@
     <string name="allow_incoming_over_apps">Allow the incoming call screen to appear over other apps</string>
     <string name="contact_photo_description">%1$s contact photo</string>
     <string name="voicemail_playback_seek">Voicemail playback position</string>
+    <string name="call_count">%1$s (%2$d)</string>
 </resources>
