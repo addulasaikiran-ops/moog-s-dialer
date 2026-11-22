@@ -1,5 +1,6 @@
 package com.moog.dialer.ui.screens
 
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -128,11 +129,11 @@ internal fun ContactDetailScreen(
 
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back to contacts", tint = MoogColors.blue) }
-            Text("Contact profile", color = MoogColors.label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back_to_contacts), tint = MoogColors.blue) }
+            Text(stringResource(R.string.contact_profile), color = MoogColors.label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
         }
         if (contact == null) {
-            CenterMessage("Contact unavailable", "This contact may have been removed from your address book.")
+            CenterMessage(stringResource(R.string.contact_unavailable), stringResource(R.string.contact_removed_hint))
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -162,7 +163,7 @@ internal fun ContactDetailScreen(
                     }
                 }
                 item {
-                    Text("PHONE NUMBERS", color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.phone_numbers), color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold)
                 }
                 items(uniqueNumbers, key = { "${it.id}-${normalizedPhoneNumber(it.phoneNumber)}" }) { phone ->
                     val label = ContactsContract.CommonDataKinds.Phone.getTypeLabel(context.resources, phone.phoneType, null).toString()
@@ -185,15 +186,15 @@ internal fun ContactDetailScreen(
                 }
                 item {
                     Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("RECENT CALL HISTORY", color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.recent_call_history), color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                         Text("${contactHistory.size}", color = MoogColors.blue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
                 if (contactHistory.isEmpty()) {
                     item {
                         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(MoogColors.surface).padding(16.dp)) {
-                            Text("No calls with this contact yet", color = MoogColors.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Calls will appear here when Android makes the device call history available.", color = MoogColors.secondaryLabel, fontSize = 11.sp)
+                            Text(stringResource(R.string.no_calls_with_contact), color = MoogColors.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.call_history_will_appear), color = MoogColors.secondaryLabel, fontSize = 11.sp)
                         }
                     }
                 } else {
@@ -220,10 +221,10 @@ internal fun ContactDetailScreen(
                                 Text(call.number + " · " + call.simLabel, color = MoogColors.secondaryLabel, fontSize = 10.sp)
                             }
                             IconButton(onClick = { onMessage(call.number) }) {
-                                Icon(Icons.Default.Sms, contentDescription = "Message this number", tint = MoogColors.blue)
+                                Icon(Icons.Default.Sms, contentDescription = stringResource(R.string.message_this_number), tint = MoogColors.blue)
                             }
                             IconButton(onClick = { onDial(call.number) }) {
-                                Icon(Icons.Default.Call, contentDescription = "Call this number", tint = MoogColors.blue)
+                                Icon(Icons.Default.Call, contentDescription = stringResource(R.string.call_this_number), tint = MoogColors.blue)
                             }
                         }
                     }
