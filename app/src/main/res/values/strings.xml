@@ -220,4 +220,14 @@
     <string name="contact_photo_description">%1$s contact photo</string>
     <string name="voicemail_playback_seek">Voicemail playback position</string>
     <string name="call_count">%1$s (%2$d)</string>
+    <string name="incoming_call">Incoming call</string>
+    <string name="calling_status">Calling…</string>
+    <string name="connecting_status">Connecting…</string>
+    <string name="connected_status">Connected</string>
+    <string name="on_hold_status">On hold</string>
+    <string name="search">Search</string>
+    <string name="clear_search">Clear search</string>
+    <string name="back_to_title">‹ %1$s</string>
+    <string name="blocklist_empty_title">Your blocklist is empty</string>
+    <string name="blocklist_empty_message">Numbers you add here will be rejected when MOOG&apos;S DIALER handles incoming calls.</string>
 </resources>
