@@ -49,6 +49,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.moog.dialer.ui.theme.MoogColors
 import com.moog.dialer.ui.theme.MoogTheme
+import com.moog.dialer.ui.components.MoogLargeTitleScaffold
 
 
 class VoicemailActivity : ComponentActivity() {
@@ -106,27 +107,35 @@ private fun VoicemailScreen(onBack: () -> Unit) {
     val messages = (loadResult as? VoicemailLoadResult.Available)?.messages.orEmpty()
     val unreadCount = messages.count { !it.isRead }
 
-    Column(Modifier.fillMaxSize().background(MoogColors.background)) {
-        Row(
-            Modifier.fillMaxWidth().background(MoogColors.surface).statusBarsPadding().padding(horizontal = 18.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MoogColors.label) }
-            Column(Modifier.weight(1f)) {
-                Text("Voicemail", color = MoogColors.label, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text(if (unreadCount == 0) "Your voicemail inbox" else unreadCount.toString() + " unread messages", color = MoogColors.secondaryLabel, fontSize = 11.sp)
+    MoogLargeTitleScaffold(
+        title = "Voicemail",
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MoogColors.blue)
             }
+        },
+        actions = {
             IconButton(onClick = {
                 VoicemailRepository.requestSync(context)
                 refreshKey++
-            }) { Icon(Icons.Default.Refresh, contentDescription = "Refresh voicemail", tint = MoogColors.blue) }
+            }) {
+                Icon(Icons.Default.Refresh, contentDescription = "Refresh voicemail", tint = MoogColors.blue)
+            }
         }
-
+    ) { scaffoldPadding ->
         LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 28.dp),
+            Modifier.fillMaxSize().padding(scaffoldPadding),
+            contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 8.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            item {
+                Text(
+                    if (unreadCount == 0) "Your voicemail inbox" else "$unreadCount unread messages",
+                    color = MoogColors.secondaryLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                )
+            }
             item {
                 Column(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(MoogColors.surface).padding(16.dp),
