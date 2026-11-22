@@ -18,3 +18,15 @@ The theme and components are presentation-only. They must not change Android Tel
 ## Verification
 
 This phase has not been built, linted, unit-tested, or device-tested. Those checks remain intentionally deferred until explicitly authorized.
+
+## Phase 2 — App shell foundation
+
+- Extracted the Android entry point and outgoing-call handoff into the thin `MainActivity.kt`.
+- Moved the main Compose app shell and current tab/screen composables into `ui/screens/DialerScreens.kt`.
+- Replaced the repeated MOOG brand header and custom bottom row with the shared five-item `MoogTabBar`.
+- Corrected the Keypad tab icon to a dialpad grid icon.
+- Kept Settings as the fifth tab so every existing feature remains reachable without a disruptive navigation change.
+- Added system Back handling for the in-app contact profile; standalone Spam Protection and carrier voicemail screens continue to use Android Activity back navigation.
+- The tab bar now applies navigation-bar insets.
+
+This is the first navigation extraction. Further per-screen file separation, Settings sub-pages, and full navigation-stack consolidation remain subsequent work.
