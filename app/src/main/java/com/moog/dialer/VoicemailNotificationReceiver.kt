@@ -45,7 +45,7 @@ class VoicemailNotificationReceiver : BroadcastReceiver() {
             Notification.Builder(context)
         }.setSmallIcon(android.R.drawable.stat_notify_voicemail)
             .setContentTitle("New voicemail")
-            .setContentText("Open MOOG'S DIALER to view your voicemail inbox.")
+            .setContentText(context.getString(R.string.open_moog_to_view_voicemail))
             .setContentIntent(openInbox)
             .setAutoCancel(true)
             .build()
