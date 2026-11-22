@@ -235,6 +235,7 @@
     <string name="open_moog_to_view_voicemail">Open MOOG&apos;S DIALER to view your voicemail inbox.</string>
     <string name="contact_information_for">Contact information for %1$s</string>
     <string name="voicemail_settings">Voicemail Settings</string>
+    <string name="call_back">Call Back</string>
     <string name="delete_voicemail_title">Delete voicemail?</string>
     <string name="delete_voicemail_confirmation">This voicemail will be deleted from the device voicemail provider. This action cannot be undone.</string>
     <string name="enter_voicemail_number">Enter carrier voicemail number</string>
