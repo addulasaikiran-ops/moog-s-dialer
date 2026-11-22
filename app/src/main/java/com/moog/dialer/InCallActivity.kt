@@ -110,7 +110,7 @@ class InCallActivity : ComponentActivity() {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text("MOOG'S DIALER", color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
                                 Spacer(Modifier.height(70.dp))
-                                Box(Modifier.size(112.dp).background(Color(0xFFE5F0FF), CircleShape), contentAlignment = Alignment.Center) {
+                                Box(Modifier.size(112.dp).background(MoogColors.fill, CircleShape), contentAlignment = Alignment.Center) {
                                     Text(current.number.take(1).uppercase(), color = MoogColors.blue, fontSize = 38.sp, fontWeight = FontWeight.Bold)
                                 }
                                 Spacer(Modifier.height(24.dp))
@@ -132,7 +132,7 @@ class InCallActivity : ComponentActivity() {
                                         CallSession.reject(current.call)
                                         finish()
                                     }
-                                    RoundCallButton("Answer", Color(0xFF20A464), Icons.Default.Call) {
+                                    RoundCallButton("Answer", MoogColors.green, Icons.Default.Call) {
                                         CallSession.answer(current.call)
                                     }
                                 }
@@ -159,7 +159,7 @@ class InCallActivity : ComponentActivity() {
                                         }
                                         RoundCallButton(
                                             if (audio.isSpeakerOn) "Speaker on" else "Speaker",
-                                            Color(0xFFE8EDF5),
+                                            MoogColors.fill,
                                             Icons.Default.VolumeUp,
                                             MoogColors.label,
                                             enabled = speakerAvailable
@@ -167,7 +167,7 @@ class InCallActivity : ComponentActivity() {
                                             CallSession.toggleSpeaker()
                                         }
                                         if (current.canHold) {
-                                            RoundCallButton(if (current.state == Call.STATE_HOLDING) "Resume" else "Hold", Color(0xFFE8EDF5), if (current.state == Call.STATE_HOLDING) Icons.Default.PlayArrow else Icons.Default.Pause, MoogColors.label) {
+                                            RoundCallButton(if (current.state == Call.STATE_HOLDING) "Resume" else "Hold", MoogColors.fill, if (current.state == Call.STATE_HOLDING) Icons.Default.PlayArrow else Icons.Default.Pause, MoogColors.label) {
                                                 CallSession.toggleHold(current.call)
                                             }
                                         }
@@ -176,12 +176,12 @@ class InCallActivity : ComponentActivity() {
                                         Spacer(Modifier.height(18.dp))
                                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                                             if (heldCall != null && current.state == Call.STATE_ACTIVE && current.canHold && heldCall.canHold) {
-                                                RoundCallButton("Swap", Color(0xFFE8EDF5), Icons.Default.PlayArrow, MoogColors.label) {
+                                                RoundCallButton("Swap", MoogColors.fill, Icons.Default.PlayArrow, MoogColors.label) {
                                                     CallSession.swapCalls(current.call, heldCall.call)
                                                 }
                                             }
                                             if (conferenceTarget != null && current.state == Call.STATE_ACTIVE) {
-                                                RoundCallButton("Merge", Color(0xFFE8EDF5), Icons.Default.Call, MoogColors.label) {
+                                                RoundCallButton("Merge", MoogColors.fill, Icons.Default.Call, MoogColors.label) {
                                                     CallSession.conference(current.call, conferenceTarget.call)
                                                 }
                                             }
@@ -272,7 +272,7 @@ private fun WaitingCallCard(
 ) {
     androidx.compose.material3.Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color.White)
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MoogColors.surface)
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp)) {
             Text("Call waiting", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
@@ -284,14 +284,14 @@ private fun WaitingCallCard(
                 androidx.compose.material3.FilledTonalButton(
                     onClick = onDecline,
                     modifier = Modifier.weight(1f),
-                    colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(contentColor = Color(0xFFE5484D))
+                    colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(contentColor = MoogColors.red)
                 ) {
                     Text("Decline")
                 }
                 androidx.compose.material3.Button(
                     onClick = onAnswer,
                     modifier = Modifier.weight(1f),
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFF20A464))
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MoogColors.green)
                 ) {
                     Text("Answer")
                 }
