@@ -232,7 +232,7 @@
     <string name="no_contact_matches">No matches found</string>
     <string name="contacts_count_label">%1$d Contacts</string>
     <string name="duration_minutes_seconds">%1$d:%2$02d</string>
-    <string name="open_moog_to_view_voicemail">Open MOOG\\'S DIALER to view your voicemail inbox.</string>
+    <string name="open_moog_to_view_voicemail">Open MOOG\'S DIALER to view your voicemail inbox.</string>
     <string name="contact_information_for">Contact information for %1$s</string>
     <string name="voicemail_settings">Voicemail Settings</string>
     <string name="call_back">Call Back</string>
