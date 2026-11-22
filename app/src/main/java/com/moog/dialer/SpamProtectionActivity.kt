@@ -94,7 +94,7 @@ private fun SpamProtectionScreen(onBack: () -> Unit) {
 
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    "BLOCKED NUMBERS · ${blocked.size}",
+                    stringResource(R.string.blocked_numbers_heading, blocked.size),
                     color = MoogColors.secondaryLabel,
                     style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
                     modifier = Modifier.weight(1f)
@@ -106,8 +106,8 @@ private fun SpamProtectionScreen(onBack: () -> Unit) {
 
             if (blocked.isEmpty()) {
                 MoogEmptyState(
-                    title = "Your blocklist is empty",
-                    message = "Numbers you add here will be rejected when MOOG'S DIALER handles incoming calls."
+                    title = stringResource(R.string.blocklist_empty_title),
+                    message = stringResource(R.string.blocklist_empty_message)
                 )
             } else {
                 MoogGroupedSection(
