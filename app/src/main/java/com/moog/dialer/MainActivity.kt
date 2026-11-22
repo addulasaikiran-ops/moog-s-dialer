@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.ArrowBack
@@ -594,6 +595,32 @@ private fun RecentsScreen(
     onRequestPermission: () -> Unit,
     onDial: (String) -> Unit
 ) {
+    var query by remember { mutableStateOf("") }
+    var filter by remember { mutableStateOf("All") }
+    val filteredCalls = remember(calls, query, filter) {
+        calls.filter { call ->
+            val matchesFilter = when (filter) {
+                "Missed" -> call.type == CallLog.Calls.MISSED_TYPE
+                "Incoming" -> call.type == CallLog.Calls.INCOMING_TYPE
+                "Outgoing" -> call.type == CallLog.Calls.OUTGOING_TYPE
+                else -> true
+            }
+            val needle = query.trim()
+            val matchesQuery = needle.isBlank() ||
+                call.displayName.contains(needle, ignoreCase = true) ||
+                call.number.contains(needle, ignoreCase = true)
+            matchesFilter && matchesQuery
+        }
+    }
+    // CallLog is newest-first, so group insertion order keeps each contact's
+    // most recent interaction as the group's position in the timeline.
+    val groupedCalls = remember(filteredCalls) {
+        filteredCalls.groupBy { call ->
+            call.displayName.trim().takeIf { it.isNotEmpty() } ?: call.number.ifBlank { "Unknown number" }
+        }
+    }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         ScreenTitle("Recents", "Your recent calls")
         when {
@@ -608,10 +635,51 @@ private fun RecentsScreen(
                 onRequestPermission
             )
             loading -> CenterMessage("Loading recent calls…", "Reading call history stored on this device.")
-            calls.isEmpty() -> CenterMessage("No recent calls", "Your incoming, outgoing, and missed calls will appear here.")
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                items(calls, key = { it.id }) { call ->
-                    RecentCallRow(call = call, onDial = { onDial(call.number) })
+            else -> {
+                SearchField(query, { query = it }, "Search name or phone number")
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("All", "Missed", "Incoming", "Outgoing").forEach { option ->
+                        FilterChip(
+                            selected = filter == option,
+                            onClick = { filter = option },
+                            label = { Text(option, fontSize = 11.sp) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                if (filteredCalls.isEmpty()) {
+                    CenterMessage(
+                        if (calls.isEmpty()) "No recent calls" else "No matching calls",
+                        if (calls.isEmpty()) "Your incoming, outgoing, and missed calls will appear here."
+                        else "Try another filter, name, or phone number."
+                    )
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        groupedCalls.forEach { (contactLabel, contactCalls) ->
+                            item(key = "group-$contactLabel") {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(start = 4.dp, top = 10.dp, bottom = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(contactLabel, color = Ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                                    Text("${contactCalls.size} call${if (contactCalls.size == 1) "" else "s"}", color = Secondary, fontSize = 10.sp)
+                                }
+                            }
+                            items(contactCalls, key = { it.id }) { call ->
+                                RecentCallRow(
+                                    call = call,
+                                    onDial = { onDial(call.number) },
+                                    onMessage = {
+                                        if (call.number.isNotBlank()) {
+                                            context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", call.number, null)))
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -619,7 +687,7 @@ private fun RecentsScreen(
 }
 
 @Composable
-private fun RecentCallRow(call: RecentCall, onDial: () -> Unit) {
+private fun RecentCallRow(call: RecentCall, onDial: () -> Unit, onMessage: () -> Unit) {
     val callType = when (call.type) {
         CallLog.Calls.INCOMING_TYPE -> "Incoming"
         CallLog.Calls.OUTGOING_TYPE -> "Outgoing"
@@ -640,26 +708,24 @@ private fun RecentCallRow(call: RecentCall, onDial: () -> Unit) {
 
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Card)
-            .clickable(onClick = onDial).padding(horizontal = 12.dp, vertical = 13.dp),
+            .clickable(onClick = onDial).padding(horizontal = 10.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(Modifier.size(38.dp).clip(CircleShape).background(SoftBlue), contentAlignment = Alignment.Center) {
             Icon(Icons.Default.Call, contentDescription = null, tint = callColor, modifier = Modifier.size(18.dp))
         }
-        Spacer(Modifier.width(11.dp))
+        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(call.displayName.ifBlank { call.number.ifBlank { "Unknown number" } }, color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(3.dp))
             Text("${callType} · ${relativeTime}", color = callColor, fontSize = 11.sp)
-            Text(call.simLabel, color = Secondary, fontSize = 10.sp)
+            Text(call.number.ifBlank { "Private number" } + " · " + call.simLabel, color = Secondary, fontSize = 10.sp)
         }
-        Column(horizontalAlignment = Alignment.End) {
-            if (call.durationSeconds > 0) {
-                Text("${call.durationSeconds / 60}:${(call.durationSeconds % 60).toString().padStart(2, '0')}", color = Secondary, fontSize = 11.sp)
-            }
-            IconButton(onClick = onDial) {
-                Icon(Icons.Default.Call, contentDescription = "Call ${call.number}", tint = Blue, modifier = Modifier.size(18.dp))
-            }
+        IconButton(onClick = onMessage, enabled = call.number.isNotBlank()) {
+            Icon(Icons.Default.Sms, contentDescription = "Message ${call.number}", tint = Blue, modifier = Modifier.size(18.dp))
+        }
+        IconButton(onClick = onDial, enabled = call.number.isNotBlank()) {
+            Icon(Icons.Default.Call, contentDescription = "Call ${call.number}", tint = Blue, modifier = Modifier.size(18.dp))
         }
     }
 }

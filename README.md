@@ -69,6 +69,10 @@ During an active or held call, the in-call screen exposes a keypad toggle with t
 
 The in-call screen keeps the established foreground call visible when a second call rings and shows a separate Call waiting card with Answer and Decline actions. Answering is delegated to Android Telecom and the underlying ConnectionService; whether the existing call is held, and whether call waiting is available at all, depends on device, SIM, carrier provisioning, and current call capabilities. When Telecom reports an active call and a held call, MOOG'S DIALER exposes Swap only when both calls report hold support. A Merge control appears only when one call lists the other as conferenceable; the app then requests the conference through Telecom. Conference participant count is shown when Telecom exposes child calls. Unsupported actions are hidden rather than simulated. These flows still require physical-device and carrier validation.
 
+### Smart Recents
+
+The Recents screen provides All, Missed, Incoming, and Outgoing filters plus local search across the cached contact name and phone number in the device call log. Matching history is grouped under the contact name when Android supplies one, otherwise under the phone number, with newest-first ordering preserved. Tap a row or its phone action to start a callback through the existing dial flow; the message action opens the system SMS composer addressed to that number. Call history remains on-device and is shown only when MOOG'S DIALER is the default Phone app and call-log permission is granted. Search is limited to the most recent records loaded by the call-log repository; it is not a full-device or cloud search.
+
 ### Stabilisation and release readiness
 - [ ] Accessibility pass: TalkBack descriptions and traversal, minimum 48dp touch targets, scalable text, contrast, focus states, and clear permission/error messaging
 - [ ] Automated CI: GitHub Actions workflow for Gradle validation, Android lint, unit tests, and debug APK assembly
@@ -81,7 +85,7 @@ The in-call screen keeps the established foreground call visible when a second c
 ### Planned product upgrades (not implemented yet)
 - [x] In-call DTMF keypad for IVR and automated phone menus
 - [x] Advanced call management: second incoming call, call waiting, hold/swap, and conference controls where Android Telecom and the carrier support them
-- [ ] Smart Recents: missed/incoming/outgoing filters, call-history search, contact grouping, and quick callback/message actions
+- [x] Smart Recents: missed/incoming/outgoing filters, call-history search, contact grouping, and quick callback/message actions
 - [ ] Rich contact profiles: contact-specific call history, quick actions, and improved multi-number handling
 - [ ] User-controlled spam protection: local blocklist, block/unblock controls, and clear suspected-spam indicators; no unsupported claims of live caller identification
 - [ ] Optional local call insights and duplicate-contact assistance, with privacy-first on-device processing
@@ -130,4 +134,4 @@ Automated checks should run from GitHub Actions on pull requests and pushes to t
 
 ## Current verification status
 
-The SIM preference and per-SIM Recents changes are merged into `main`. The in-call DTMF keypad is merged into `main`. Advanced call-management controls are implemented on their feature branch and are awaiting review/merge. The stabilisation, accessibility, automated-check, carrier-validation, and device-QA items above are planned work unless explicitly checked off with recorded evidence. No build, automated test suite, or physical-device validation is claimed by this README.
+The SIM preference and per-SIM Recents changes are merged into `main`. The in-call DTMF keypad is merged into `main`. Advanced call-management controls are merged into `main`. Smart Recents is implemented on its feature branch and is awaiting review/merge. The stabilisation, accessibility, automated-check, carrier-validation, and device-QA items above are planned work unless explicitly checked off with recorded evidence. No build, automated test suite, or physical-device validation is claimed by this README.
