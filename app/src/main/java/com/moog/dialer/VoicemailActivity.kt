@@ -73,6 +73,7 @@ private fun VoicemailScreen(onBack: () -> Unit) {
     var refreshKey by remember { mutableIntStateOf(0) }
     var isDefaultDialer by remember { mutableStateOf(isMoogDefaultDialer(context)) }
     var phoneAccounts by remember { mutableStateOf<List<PhoneAccountOption>>(emptyList()) }
+    var hasNotificationPermission by remember { mutableStateOf(android.os.Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) }
     var phoneNumberPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_NUMBERS) == PackageManager.PERMISSION_GRANTED)
@@ -85,6 +86,7 @@ private fun VoicemailScreen(onBack: () -> Unit) {
         hasPermission = granted
         if (granted) refreshKey++
     }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> hasNotificationPermission = granted }
     val phonePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         phoneNumberPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_NUMBERS) == PackageManager.PERMISSION_GRANTED
@@ -157,6 +159,12 @@ private fun VoicemailScreen(onBack: () -> Unit) {
                             onClick = { refreshKey++ }, modifier = Modifier.fillMaxWidth()
                         ) { Text("Try again") }
                         else -> Unit
+                    }
+                    if (!hasNotificationPermission && android.os.Build.VERSION.SDK_INT >= 33) {
+                        OutlinedButton(
+                            onClick = { notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Enable new voicemail notifications") }
                     }
                     if (!isDefaultDialer) {
                         Text("Android delivers visual voicemail events only to the default Phone app.", color = VmMuted, fontSize = 10.sp)
