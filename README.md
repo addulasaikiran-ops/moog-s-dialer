@@ -62,6 +62,6 @@ Windows PowerShell:
 
 The current app can open Android's system dialer using `ACTION_DIAL`; it is not yet a full replacement Phone app. A true default dialer must meet Android's dialer-role requirements and implement the Telecom `InCallService` contract before requesting `RoleManager.ROLE_DIALER`.
 
-The app requests `READ_CONTACTS` only when the user chooses to connect their address book. Contact data is read on-device. Favorites are stored locally. Call-log access is intentionally deferred until the app is eligible for the Phone role and the user-facing permission flow is ready.
+The app requests `READ_CONTACTS` only when the user chooses to connect their address book. Contact data is read on-device and favorites are stored locally. The Recents screen now has a CallLog repository and UI, but it reads nothing unless Android reports that MOOG'S DIALER holds `ROLE_DIALER` and `READ_CALL_LOG` is granted. The current app is not yet eligible to request that role: Android requires a complete `InCallService` with incoming and ongoing call UI. That Telecom milestone must be completed before the call-history screen can be enabled.
 
 Emergency calling and carrier-managed behavior remain under Android and the carrier's control.
