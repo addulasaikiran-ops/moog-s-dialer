@@ -1,5 +1,6 @@
 package com.moog.dialer.ui.components
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -173,7 +174,7 @@ fun MoogSearchBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(Icons.Default.Search, contentDescription = "Search", tint = MoogColors.secondaryLabel)
+        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search), tint = MoogColors.secondaryLabel)
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
@@ -187,10 +188,10 @@ fun MoogSearchBar(
         )
         if (value.isNotEmpty()) {
             IconButton(onClick = { onValueChange("") }) {
-                Icon(Icons.Default.Close, contentDescription = "Clear search")
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear_search))
             }
         }
-        if (onCancel != null) TextButton(onClick = onCancel) { Text("Cancel") }
+        if (onCancel != null) TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
     }
 }
 
@@ -351,7 +352,7 @@ fun MoogConfirmSheet(
             TextButton(onClick = onConfirm, modifier = Modifier.fillMaxWidth()) {
                 Text(confirmLabel, color = MoogColors.red, style = MaterialTheme.typography.bodyLarge)
             }
-            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.cancel)) }
         }
     }
 }
