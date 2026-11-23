@@ -103,6 +103,7 @@ import com.moog.dialer.SpamProtectionActivity
 import com.moog.dialer.VoicemailActivity
 import com.moog.dialer.isMoogDefaultPhoneApp
 import com.moog.dialer.BuildConfig
+import com.moog.dialer.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
