@@ -182,6 +182,7 @@ internal fun KeypadScreen(
                 textStyle = TextStyle(
                     color = MoogColors.label,
                     fontSize = numberSize,
+                    fontFamily = MaterialTheme.typography.displayLarge.fontFamily,
                     textAlign = TextAlign.Center,
                     letterSpacing = 0.5.sp
                 ),
@@ -257,6 +258,7 @@ internal fun KeypadScreen(
                                     digit,
                                     color = MoogColors.label,
                                     fontSize = 36.sp,
+                                    fontFamily = MaterialTheme.typography.displayLarge.fontFamily,
                                     fontWeight = FontWeight.Light
                                 )
                                 if (letters.isNotEmpty()) {
