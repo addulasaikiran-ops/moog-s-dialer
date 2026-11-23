@@ -1,5 +1,6 @@
 package com.moog.dialer.ui.screens
 
+import androidx.compose.ui.res.stringResource
 import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -45,15 +46,15 @@ internal fun CallDetailScreen(
     var isBlocked by remember(call.number) {
         mutableStateOf(SpamBlockRepository.isBlocked(context, call.number))
     }
-    val name = call.displayName.ifBlank { call.number.ifBlank { "Unknown caller" } }
+    val name = call.displayName.ifBlank { call.number.ifBlank { stringResource(R.string.unknown_caller) } }
     val callType = when (call.type) {
-        android.provider.CallLog.Calls.INCOMING_TYPE -> "Incoming"
-        android.provider.CallLog.Calls.OUTGOING_TYPE -> "Outgoing"
-        android.provider.CallLog.Calls.MISSED_TYPE -> "Missed"
-        android.provider.CallLog.Calls.REJECTED_TYPE -> "Rejected"
-        android.provider.CallLog.Calls.BLOCKED_TYPE -> "Blocked"
-        android.provider.CallLog.Calls.VOICEMAIL_TYPE -> "Voicemail"
-        else -> "Call"
+        android.provider.CallLog.Calls.INCOMING_TYPE -> stringResource(R.string.incoming)
+        android.provider.CallLog.Calls.OUTGOING_TYPE -> stringResource(R.string.outgoing)
+        android.provider.CallLog.Calls.MISSED_TYPE -> stringResource(R.string.missed)
+        android.provider.CallLog.Calls.REJECTED_TYPE -> stringResource(R.string.rejected)
+        android.provider.CallLog.Calls.BLOCKED_TYPE -> stringResource(R.string.blocked)
+        android.provider.CallLog.Calls.VOICEMAIL_TYPE -> stringResource(R.string.voicemail)
+        else -> stringResource(R.string.call)
     }
     val whenLabel = DateUtils.getRelativeTimeSpanString(
         call.date,
@@ -63,10 +64,10 @@ internal fun CallDetailScreen(
     val durationLabel = "%d:%02d".format(call.durationSeconds.coerceAtLeast(0L) / 60, call.durationSeconds.coerceAtLeast(0L) % 60)
 
     MoogLargeTitleScaffold(
-        title = "Call Details",
+        title = stringResource(R.string.screen_call_details),
         navigationIcon = {
             IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back to Recents", tint = MoogColors.blue)
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back_to_recents), tint = MoogColors.blue)
             }
         }
     ) { padding ->
@@ -81,17 +82,17 @@ internal fun CallDetailScreen(
                 Avatar(name)
                 Spacer(Modifier.height(12.dp))
                 Text(name, color = MoogColors.label, style = MaterialTheme.typography.titleLarge)
-                Text(call.number.ifBlank { "Private number" }, color = MoogColors.secondaryLabel, style = MaterialTheme.typography.bodyMedium)
+                Text(call.number.ifBlank { stringResource(R.string.private_number) }, color = MoogColors.secondaryLabel, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(14.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
                     MoogCircleButton(
                         icon = Icons.Default.Sms,
-                        contentDescription = "Message $name",
+                        contentDescription = stringResource(R.string.message_person, name),
                         onClick = { if (call.number.isNotBlank()) onMessage(call.number) }
                     )
                     MoogCircleButton(
                         icon = Icons.Default.Call,
-                        contentDescription = "Call $name",
+                        contentDescription = stringResource(R.string.call_person, name),
                         background = MoogColors.green,
                         tint = androidx.compose.ui.graphics.Color.White,
                         onClick = { if (call.number.isNotBlank()) onDial(call.number) }
@@ -99,19 +100,19 @@ internal fun CallDetailScreen(
                 }
             }
 
-            MoogGroupedSection(title = "CALL INFORMATION") {
-                MoogListRow(title = "Type", trailingValue = callType)
-                MoogListRow(title = "When", trailingValue = whenLabel)
-                MoogListRow(title = "Duration", trailingValue = durationLabel)
-                MoogListRow(title = "SIM", trailingValue = call.simLabel)
+            MoogGroupedSection(title = stringResource(R.string.call_information)) {
+                MoogListRow(title = stringResource(R.string.type), trailingValue = callType)
+                MoogListRow(title = stringResource(R.string.when), trailingValue = whenLabel)
+                MoogListRow(title = stringResource(R.string.duration), trailingValue = durationLabel)
+                MoogListRow(title = stringResource(R.string.sim), trailingValue = call.simLabel)
             }
 
             MoogGroupedSection(
-                title = "PRIVACY AND SAFETY",
-                footer = "Blocking is stored locally on this device. Private or withheld numbers cannot be matched."
+                title = stringResource(R.string.privacy_and_safety),
+                footer = stringResource(R.string.blocking_stored_locally)
             ) {
                 MoogListRow(
-                    title = if (isBlocked) "Unblock this number" else "Block this number",
+                    title = if (isBlocked) stringResource(R.string.unblock_this_number) else stringResource(R.string.block_this_number),
                     subtitle = call.number,
                     destructive = !isBlocked,
                     onClick = {

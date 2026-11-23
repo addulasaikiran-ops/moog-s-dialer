@@ -1,5 +1,6 @@
 package com.moog.dialer
 
+import androidx.compose.ui.res.stringResource
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -53,10 +54,10 @@ private fun SpamProtectionScreen(onBack: () -> Unit) {
     var blocked by remember { mutableStateOf(SpamBlockRepository.blockedNumbers(context)) }
 
     MoogLargeTitleScaffold(
-        title = "Spam Protection",
+        title = stringResource(R.string.screen_spam_protection),
         navigationIcon = {
             IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MoogColors.blue)
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back), tint = MoogColors.blue)
             }
         }
     ) { padding ->
@@ -64,14 +65,14 @@ private fun SpamProtectionScreen(onBack: () -> Unit) {
             Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            MoogGroupedSection(title = "ADD A NUMBER", footer = "Only numbers you add here are blocked.") {
+            MoogGroupedSection(title = stringResource(R.string.spam_add_number), footer = stringResource(R.string.only_added_numbers_blocked)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {
                     OutlinedTextField(
                         value = number,
                         onValueChange = { number = it.filter { char -> char.isDigit() || char == '+' || char == ' ' || char == '-' }.take(24) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Phone number") },
-                        placeholder = { Text("Enter number to block") },
+                        label = { Text(stringResource(R.string.phone_number)) },
+                        placeholder = { Text(stringResource(R.string.enter_number_to_block)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
                     )
@@ -86,38 +87,38 @@ private fun SpamProtectionScreen(onBack: () -> Unit) {
                         enabled = number.count(Char::isDigit) >= 3,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Block Number")
+                        Text(stringResource(R.string.block_number))
                     }
                 }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    "BLOCKED NUMBERS · ${blocked.size}",
+                    stringResource(R.string.blocked_numbers_heading, blocked.size),
                     color = MoogColors.secondaryLabel,
                     style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
                     modifier = Modifier.weight(1f)
                 )
                 TextButton(onClick = { editMode = !editMode }, enabled = blocked.isNotEmpty()) {
-                    Text(if (editMode) "Done" else "Edit")
+                    Text(if (editMode) stringResource(R.string.done) else stringResource(R.string.edit))
                 }
             }
 
             if (blocked.isEmpty()) {
                 MoogEmptyState(
-                    title = "Your blocklist is empty",
-                    message = "Numbers you add here will be rejected when MOOG'S DIALER handles incoming calls."
+                    title = stringResource(R.string.blocklist_empty_title),
+                    message = stringResource(R.string.blocklist_empty_message)
                 )
             } else {
                 MoogGroupedSection(
-                    footer = "Blocked numbers are stored locally on this device."
+                    footer = stringResource(R.string.blocked_numbers_local_note)
                 ) {
                     blocked.forEach { item ->
                         MoogListRow(
                             title = item,
                             leading = if (editMode) {
                                 {
-                                    Icon(Icons.Default.RemoveCircle, contentDescription = "Unblock $item", tint = MoogColors.red)
+                                    Icon(Icons.Default.RemoveCircle, contentDescription = stringResource(R.string.unblock_person, item), tint = MoogColors.red)
                                 }
                             } else null,
                             trailing = if (editMode) {
@@ -127,7 +128,7 @@ private fun SpamProtectionScreen(onBack: () -> Unit) {
                                         blocked = SpamBlockRepository.blockedNumbers(context)
                                         if (blocked.isEmpty()) editMode = false
                                     }) {
-                                        Text("Unblock", color = MoogColors.red)
+                                        Text(stringResource(R.string.unblock), color = MoogColors.red)
                                     }
                                 }
                             } else null,
@@ -143,7 +144,7 @@ private fun SpamProtectionScreen(onBack: () -> Unit) {
             }
 
             Text(
-                "Only numbers you add are blocked. MOOG'S DIALER does not use a live caller-ID or spam-reputation service. Private or withheld numbers cannot be matched.",
+                stringResource(R.string.spam_protection_disclaimer),
                 color = MoogColors.secondaryLabel,
                 style = androidx.compose.material3.MaterialTheme.typography.bodySmall
             )

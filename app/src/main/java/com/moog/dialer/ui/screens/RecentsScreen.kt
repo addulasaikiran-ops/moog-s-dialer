@@ -1,5 +1,6 @@
 package com.moog.dialer.ui.screens
 
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -149,21 +150,21 @@ internal fun RecentsScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
 
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        ScreenTitle("Recents", "Your recent calls")
+        ScreenTitle(stringResource(R.string.screen_recents), stringResource(R.string.your_recent_calls))
         when {
             !isDefaultDialer -> CenterMessage(
-                "Default Phone app required",
-                "Android protects call history. MOOG'S DIALER can show it only after it is eligible for and selected as the default Phone app. Incoming and ongoing call screens are still part of that setup."
+                stringResource(R.string.default_phone_app_required),
+                stringResource(R.string.android_protects_call_history_moog_s_dialer_can_)
             )
             !hasPermission -> PermissionCard(
-                "Allow call history access",
-                "Grant call history permission to show recent incoming, outgoing, and missed calls on this device.",
-                "Allow call history",
+                stringResource(R.string.allow_call_history_access),
+                stringResource(R.string.call_history_permission_rationale),
+                stringResource(R.string.allow_call_history),
                 onRequestPermission
             )
-            loading -> CenterMessage("Loading recent calls…", "Reading call history stored on this device.")
+            loading -> CenterMessage(stringResource(R.string.loading_recent_calls), stringResource(R.string.reading_call_history))
             else -> {
-                SearchField(query, { query = it }, "Search name or phone number")
+                SearchField(query, { query = it }, stringResource(R.string.search_name_or_phone_number))
                 Spacer(Modifier.height(10.dp))
                 Row(
                     Modifier.fillMaxWidth(),
@@ -171,30 +172,33 @@ internal fun RecentsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     MoogSegmentedControl(
-                        options = listOf("All", "Missed"),
+                        options = listOf(stringResource(R.string.all), stringResource(R.string.missed)),
                         selectedIndex = when (filter) { "All" -> 0; "Missed" -> 1; else -> -1 },
                         onSelected = { filter = if (it == 1) "Missed" else "All" },
                         modifier = Modifier.weight(1f)
                     )
                     Box {
                         IconButton(onClick = { filterMenuExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More call filters", tint = MoogColors.secondaryLabel)
+                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_call_filters), tint = MoogColors.secondaryLabel)
                         }
                         DropdownMenu(
                             expanded = filterMenuExpanded,
                             onDismissRequest = { filterMenuExpanded = false }
                         ) {
-                            listOf("Incoming", "Outgoing").forEach { option ->
+                            listOf(
+                                "Incoming" to stringResource(R.string.incoming),
+                                "Outgoing" to stringResource(R.string.outgoing)
+                            ).forEach { (filterKey, optionLabel) ->
                                 DropdownMenuItem(
-                                    text = { Text(option) },
+                                    text = { Text(optionLabel) },
                                     onClick = {
-                                        filter = option
+                                        filter = filterKey
                                         filterMenuExpanded = false
                                     }
                                 )
                             }
                             DropdownMenuItem(
-                                text = { Text("All calls") },
+                                text = { Text(stringResource(R.string.all_calls)) },
                                 onClick = {
                                     filter = "All"
                                     filterMenuExpanded = false
@@ -206,9 +210,9 @@ internal fun RecentsScreen(
                 Spacer(Modifier.height(8.dp))
                 if (filteredCalls.isEmpty()) {
                     CenterMessage(
-                        if (calls.isEmpty()) "No recent calls" else "No matching calls",
-                        if (calls.isEmpty()) "Your incoming, outgoing, and missed calls will appear here."
-                        else "Try another filter, name, or phone number."
+                        if (calls.isEmpty()) stringResource(R.string.no_recent_calls) else stringResource(R.string.no_matching_calls),
+                        if (calls.isEmpty()) stringResource(R.string.recent_calls_empty_hint)
+                        else stringResource(R.string.try_another_filter)
                     )
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -247,13 +251,13 @@ private fun RecentCallRow(
     onOpenDetails: () -> Unit
 ) {
     val callType = when (call.type) {
-        CallLog.Calls.INCOMING_TYPE -> "Incoming"
-        CallLog.Calls.OUTGOING_TYPE -> "Outgoing"
-        CallLog.Calls.MISSED_TYPE -> "Missed"
-        CallLog.Calls.REJECTED_TYPE -> "Rejected"
-        CallLog.Calls.BLOCKED_TYPE -> "Blocked"
-        CallLog.Calls.VOICEMAIL_TYPE -> "Voicemail"
-        else -> "Call"
+        CallLog.Calls.INCOMING_TYPE -> stringResource(R.string.incoming)
+        CallLog.Calls.OUTGOING_TYPE -> stringResource(R.string.outgoing)
+        CallLog.Calls.MISSED_TYPE -> stringResource(R.string.missed)
+        CallLog.Calls.REJECTED_TYPE -> stringResource(R.string.rejected)
+        CallLog.Calls.BLOCKED_TYPE -> stringResource(R.string.blocked)
+        CallLog.Calls.VOICEMAIL_TYPE -> stringResource(R.string.voicemail)
+        else -> stringResource(R.string.call)
     }
     val missed = call.type == CallLog.Calls.MISSED_TYPE || call.type == CallLog.Calls.REJECTED_TYPE
     val callColor = if (missed) MoogColors.red else MoogColors.blue
@@ -269,7 +273,7 @@ private fun RecentCallRow(
         DateUtils.MINUTE_IN_MILLIS
     ).toString()
     val name = call.displayName.ifBlank { call.number.ifBlank { "Unknown number" } }
-    val displayName = if (callCount > 1) "$name ($callCount)" else name
+    val displayName = if (callCount > 1) stringResource(R.string.call_count, name, callCount) else name
 
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MoogColors.surface)
@@ -282,20 +286,20 @@ private fun RecentCallRow(
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(displayName, color = if (missed) MoogColors.red else MoogColors.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            Text("$callType · $relativeTime", color = callColor, fontSize = 12.sp)
-            Text(call.number.ifBlank { "Private number" } + " · " + call.simLabel, color = MoogColors.secondaryLabel, fontSize = 11.sp)
+            Text(stringResource(R.string.call_type_time, callType, relativeTime), color = callColor, fontSize = 12.sp)
+            Text(stringResource(R.string.number_sim, call.number.ifBlank { stringResource(R.string.private_number) }, call.simLabel), color = MoogColors.secondaryLabel, fontSize = 11.sp)
             if (isBlocked) {
-                Text("On your blocklist · blocked by you", color = MoogColors.red, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.blocked_by_you), color = MoogColors.red, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             }
         }
         IconButton(onClick = onOpenDetails) {
-            Icon(Icons.Default.Info, contentDescription = "Call details for ${call.number}", tint = MoogColors.secondaryLabel, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.Info, contentDescription = stringResource(R.string.call_details_for_number, call.number), tint = MoogColors.secondaryLabel, modifier = Modifier.size(18.dp))
         }
         IconButton(onClick = onMessage, enabled = call.number.isNotBlank()) {
-            Icon(Icons.Default.Sms, contentDescription = "Message ${call.number}", tint = MoogColors.blue, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.Sms, contentDescription = stringResource(R.string.message_number, call.number), tint = MoogColors.blue, modifier = Modifier.size(18.dp))
         }
         IconButton(onClick = onDial, enabled = call.number.isNotBlank()) {
-            Icon(Icons.Default.Call, contentDescription = "Call ${call.number}", tint = MoogColors.blue, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.Call, contentDescription = stringResource(R.string.call_number, call.number), tint = MoogColors.blue, modifier = Modifier.size(18.dp))
         }
     }
 }

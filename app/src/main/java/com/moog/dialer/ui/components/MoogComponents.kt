@@ -1,5 +1,6 @@
 package com.moog.dialer.ui.components
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -162,9 +163,10 @@ fun MoogSearchBar(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "Search",
+    placeholder: String? = null,
     onCancel: (() -> Unit)? = null
 ) {
+    val resolvedPlaceholder = placeholder ?: stringResource(R.string.search)
     Row(
         modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp)
             .clip(RoundedCornerShape(12.dp))
@@ -173,7 +175,7 @@ fun MoogSearchBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(Icons.Default.Search, contentDescription = "Search", tint = MoogColors.secondaryLabel)
+        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search), tint = MoogColors.secondaryLabel)
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
@@ -181,16 +183,16 @@ fun MoogSearchBar(
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = MoogColors.label),
             decorationBox = { inner ->
-                if (value.isEmpty()) Text(placeholder, color = MoogColors.secondaryLabel, style = MaterialTheme.typography.bodyLarge)
+                if (value.isEmpty()) Text(resolvedPlaceholder, color = MoogColors.secondaryLabel, style = MaterialTheme.typography.bodyLarge)
                 inner()
             }
         )
         if (value.isNotEmpty()) {
             IconButton(onClick = { onValueChange("") }) {
-                Icon(Icons.Default.Close, contentDescription = "Clear search")
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear_search))
             }
         }
-        if (onCancel != null) TextButton(onClick = onCancel) { Text("Cancel") }
+        if (onCancel != null) TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
     }
 }
 
@@ -296,7 +298,7 @@ fun MoogNavBar(title: String, onBack: () -> Unit, trailing: (@Composable () -> U
         modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 52.dp).padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TextButton(onClick = onBack) { Text("‹ $title", color = MoogColors.blue, style = MaterialTheme.typography.bodyLarge) }
+        TextButton(onClick = onBack) { Text(stringResource(R.string.back_to_title, title), color = MoogColors.blue, style = MaterialTheme.typography.bodyLarge) }
         Spacer(Modifier.weight(1f))
         trailing?.invoke()
     }
@@ -351,7 +353,7 @@ fun MoogConfirmSheet(
             TextButton(onClick = onConfirm, modifier = Modifier.fillMaxWidth()) {
                 Text(confirmLabel, color = MoogColors.red, style = MaterialTheme.typography.bodyLarge)
             }
-            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.cancel)) }
         }
     }
 }

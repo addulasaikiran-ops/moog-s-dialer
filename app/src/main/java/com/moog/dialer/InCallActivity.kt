@@ -1,5 +1,6 @@
 package com.moog.dialer
 
+import androidx.compose.ui.res.stringResource
 import android.os.Bundle
 import android.content.Context
 import android.content.pm.PackageManager
@@ -128,7 +129,7 @@ class InCallActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize(), color = MoogColors.background) {
                     if (current == null) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No active call", color = MoogColors.secondaryLabel)
+                            Text(stringResource(R.string.no_active_call), color = MoogColors.secondaryLabel)
                         }
                     } else {
                         val context = androidx.compose.ui.platform.LocalContext.current
@@ -151,12 +152,12 @@ class InCallActivity : ComponentActivity() {
                         }
                         val incoming = current.state == Call.STATE_RINGING
                         val status = when (current.state) {
-                            Call.STATE_RINGING -> "Incoming call"
-                            Call.STATE_DIALING -> "Calling…"
-                            Call.STATE_CONNECTING -> "Connecting…"
-                            Call.STATE_ACTIVE -> "Connected"
-                            Call.STATE_HOLDING -> "On hold"
-                            else -> "Call"
+                            Call.STATE_RINGING -> stringResource(R.string.incoming_call)
+                            Call.STATE_DIALING -> stringResource(R.string.calling_status)
+                            Call.STATE_CONNECTING -> stringResource(R.string.connecting_status)
+                            Call.STATE_ACTIVE -> stringResource(R.string.connected_status)
+                            Call.STATE_HOLDING -> stringResource(R.string.on_hold_status)
+                            else -> stringResource(R.string.call)
                         }
                         val speakerAvailable = audio.availableRoutes and CallAudioState.ROUTE_SPEAKER != 0
                         val canSendDtmf = current.state == Call.STATE_ACTIVE || current.state == Call.STATE_HOLDING
@@ -170,7 +171,7 @@ class InCallActivity : ComponentActivity() {
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("MOOG'S DIALER", color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
+                                Text(stringResource(R.string.moog_brand), color = MoogColors.secondaryLabel, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.SemiBold)
                                 Spacer(Modifier.height(70.dp))
                                 Box(Modifier.size(112.dp).background(MoogColors.fill, CircleShape), contentAlignment = Alignment.Center) {
                                     val initials = displayName.trim().split(Regex("\\s+")).take(2).mapNotNull { it.firstOrNull()?.toString() }.joinToString("").uppercase()
@@ -192,7 +193,7 @@ class InCallActivity : ComponentActivity() {
                                 }
                                 if (current.conferenceChildCount > 0) {
                                     Spacer(Modifier.height(8.dp))
-                                    Text("Conference · ${current.conferenceChildCount} participants", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text(stringResource(R.string.conference_participants_count, current.conferenceChildCount), color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
                             }
 
@@ -203,11 +204,11 @@ class InCallActivity : ComponentActivity() {
                                         horizontalArrangement = Arrangement.SpaceEvenly,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        RoundCallButton("Decline", MoogColors.red, Icons.Default.CallEnd) {
+                                        RoundCallButton(stringResource(R.string.decline), MoogColors.red, Icons.Default.CallEnd) {
                                             CallSession.reject(current.call)
                                             finish()
                                         }
-                                        RoundCallButton("Answer", MoogColors.green, Icons.Default.Call) {
+                                        RoundCallButton(stringResource(R.string.answer), MoogColors.green, Icons.Default.Call) {
                                             CallSession.answer(current.call)
                                         }
                                     }
@@ -219,7 +220,7 @@ class InCallActivity : ComponentActivity() {
                                             finish()
                                         }
                                     ) {
-                                        Text("Block caller and decline", color = MoogColors.red, fontSize = 13.sp)
+                                        Text(stringResource(R.string.block_caller_decline), color = MoogColors.red, fontSize = 13.sp)
                                     }
                                 }
                             } else {
@@ -234,11 +235,11 @@ class InCallActivity : ComponentActivity() {
                                         Spacer(Modifier.height(16.dp))
                                     }
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                        RoundCallButton(if (audio.isMuted) "Unmute" else "Mute", MoogColors.fill, if (audio.isMuted) Icons.Default.MicOff else Icons.Default.Mic, MoogColors.label) {
+                                        RoundCallButton(if (audio.isMuted) stringResource(R.string.unmute) else stringResource(R.string.mute), MoogColors.fill, if (audio.isMuted) Icons.Default.MicOff else Icons.Default.Mic, MoogColors.label) {
                                             CallSession.toggleMute()
                                         }
                                         if (canSendDtmf) {
-                                            RoundCallButton(if (showDtmf) "Hide keypad" else "Keypad", MoogColors.fill, Icons.Default.Dialpad, MoogColors.label) {
+                                            RoundCallButton(if (showDtmf) stringResource(R.string.hide_keypad) else stringResource(R.string.keypad), MoogColors.fill, Icons.Default.Dialpad, MoogColors.label) {
                                                 showDtmf = !showDtmf
                                                 if (!showDtmf) CallSession.stopDtmfTone()
                                             }
@@ -259,17 +260,17 @@ class InCallActivity : ComponentActivity() {
                                         Spacer(Modifier.height(18.dp))
                                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                                             if (current.canHold) {
-                                                RoundCallButton(if (current.state == Call.STATE_HOLDING) "Resume" else "Hold", MoogColors.fill, if (current.state == Call.STATE_HOLDING) Icons.Default.PlayArrow else Icons.Default.Pause, MoogColors.label) {
+                                                RoundCallButton(if (current.state == Call.STATE_HOLDING) stringResource(R.string.resume) else stringResource(R.string.hold), MoogColors.fill, if (current.state == Call.STATE_HOLDING) Icons.Default.PlayArrow else Icons.Default.Pause, MoogColors.label) {
                                                     CallSession.toggleHold(current.call)
                                                 }
                                             }
                                             if (canSwap && heldCall != null) {
-                                                RoundCallButton("Swap", MoogColors.fill, Icons.Default.PlayArrow, MoogColors.label) {
+                                                RoundCallButton(stringResource(R.string.swap), MoogColors.fill, Icons.Default.PlayArrow, MoogColors.label) {
                                                     CallSession.swapCalls(current.call, heldCall.call)
                                                 }
                                             }
                                             if (canMerge && conferenceTarget != null) {
-                                                RoundCallButton("Merge", MoogColors.fill, Icons.Default.Call, MoogColors.label) {
+                                                RoundCallButton(stringResource(R.string.merge), MoogColors.fill, Icons.Default.Call, MoogColors.label) {
                                                     CallSession.conference(current.call, conferenceTarget.call)
                                                 }
                                             }
@@ -280,7 +281,7 @@ class InCallActivity : ComponentActivity() {
                                         DtmfKeypad(onDigit = { digit -> CallSession.sendDtmfTone(current.call, digit) })
                                     }
                                     Spacer(Modifier.height(38.dp))
-                                    RoundCallButton("End call", MoogColors.red, Icons.Default.CallEnd) {
+                                    RoundCallButton(stringResource(R.string.end_call), MoogColors.red, Icons.Default.CallEnd) {
                                         CallSession.disconnect(current.call)
                                         finish()
                                     }
@@ -363,7 +364,7 @@ private fun WaitingCallCard(
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MoogColors.surface)
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp)) {
-            Text("Call waiting", color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.call_waiting), color = MoogColors.blue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(4.dp))
             Text(number, color = MoogColors.label, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Text(simLabel, color = MoogColors.secondaryLabel, fontSize = 11.sp)
@@ -374,14 +375,14 @@ private fun WaitingCallCard(
                     modifier = Modifier.weight(1f),
                     colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(contentColor = MoogColors.red)
                 ) {
-                    Text("Decline")
+                    Text(stringResource(R.string.decline))
                 }
                 androidx.compose.material3.Button(
                     onClick = onAnswer,
                     modifier = Modifier.weight(1f),
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MoogColors.green)
                 ) {
-                    Text("Answer")
+                    Text(stringResource(R.string.answer))
                 }
             }
         }

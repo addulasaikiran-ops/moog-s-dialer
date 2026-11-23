@@ -1,5 +1,6 @@
 package com.moog.dialer.ui.screens
 
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -110,15 +111,15 @@ internal fun FavoritesScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        ScreenTitle("Favorites", "The people you reach most")
+        ScreenTitle(stringResource(R.string.screen_favorites), stringResource(R.string.the_people_you_reach_most))
         when {
             !hasPermission -> PermissionCard(
-                "Your favorites start with contacts",
-                "Allow contacts access to choose people for your favorites.",
-                "Allow contacts access",
+                stringResource(R.string.your_favorites_start_with_contacts),
+                stringResource(R.string.choose_people_for_favorites),
+                stringResource(R.string.allow_contacts_access),
                 onRequestPermission
             )
-            contacts.isEmpty() -> CenterMessage("No favorites yet", "Open Contacts and tap the star beside someone to add them here.")
+            contacts.isEmpty() -> CenterMessage(stringResource(R.string.no_favorites_yet), stringResource(R.string.add_favorites_hint))
             else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 items(contacts.groupBy { it.id }.values.map { it.first() }, key = { it.id }) { contact ->
                     val numberLabel = ContactsContract.CommonDataKinds.Phone
@@ -137,7 +138,7 @@ internal fun FavoritesScreen(
                             Text(numberLabel, color = MoogColors.secondaryLabel, style = MaterialTheme.typography.bodySmall)
                         }
                         IconButton(onClick = { onOpenContact(contact.id) }) {
-                            Icon(Icons.Default.Info, contentDescription = "Contact information for ${contact.displayName}", tint = MoogColors.blue)
+                            Icon(Icons.Default.Info, contentDescription = stringResource(R.string.contact_information_for, contact.displayName), tint = MoogColors.blue)
                         }
                     }
                 }

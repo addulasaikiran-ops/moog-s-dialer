@@ -1,5 +1,6 @@
 package com.moog.dialer.ui.screens
 
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -100,8 +101,12 @@ import com.moog.dialer.SpamProtectionActivity
 import com.moog.dialer.VoicemailActivity
 import com.moog.dialer.isMoogDefaultPhoneApp
 
-private enum class Tab(val label: String) {
-    Favorites("Favorites"), Recents("Recents"), Contacts("Contacts"), Keypad("Keypad"), Settings("Settings")
+private enum class Tab(@androidx.annotation.StringRes val labelRes: Int) {
+    Favorites(R.string.tab_favorites),
+    Recents(R.string.tab_recents),
+    Contacts(R.string.tab_contacts),
+    Keypad(R.string.tab_keypad),
+    Settings(R.string.tab_settings)
 }
 
 @Composable
@@ -441,12 +446,12 @@ internal fun ContactRow(
         }
         if (showFavorite) {
             IconButton(onClick = onFavorite) {
-                Icon(Icons.Default.Favorite, contentDescription = if (favorite) "Remove favorite" else "Add favorite",
+                Icon(Icons.Default.Favorite, contentDescription = if (favorite) stringResource(R.string.remove_favorite) else stringResource(R.string.add_favorite),
                     tint = if (favorite) MoogColors.blue else MoogColors.secondaryLabel.copy(alpha = 0.6f), modifier = Modifier.size(19.dp))
             }
         }
         IconButton(onClick = onDial) {
-            Icon(Icons.Default.Call, contentDescription = "Call ${contact.displayName}", tint = MoogColors.blue, modifier = Modifier.size(19.dp))
+            Icon(Icons.Default.Call, contentDescription = stringResource(R.string.call_person, contact.displayName), tint = MoogColors.blue, modifier = Modifier.size(19.dp))
         }
     }
 }
@@ -478,7 +483,7 @@ internal fun Avatar(name: String, photoUri: String? = null) {
         if (photo != null) {
             Image(
                 bitmap = photo!!.asImageBitmap(),
-                contentDescription = "$name contact photo",
+                contentDescription = stringResource(R.string.contact_photo_description, name),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
@@ -529,11 +534,11 @@ internal fun SettingsRow(title: String, detail: String) {
 @Composable
 private fun BottomTabs(selected: Tab, onSelect: (Tab) -> Unit) {
     val items = listOf(
-        MoogTabItem(Tab.Favorites.name, Tab.Favorites.label, Icons.Default.Favorite),
-        MoogTabItem(Tab.Recents.name, Tab.Recents.label, Icons.Default.History),
-        MoogTabItem(Tab.Contacts.name, Tab.Contacts.label, Icons.Default.Person),
-        MoogTabItem(Tab.Keypad.name, Tab.Keypad.label, Icons.Default.Dialpad),
-        MoogTabItem(Tab.Settings.name, Tab.Settings.label, Icons.Default.Settings)
+        MoogTabItem(Tab.Favorites.name, stringResource(Tab.Favorites.labelRes), Icons.Default.Favorite),
+        MoogTabItem(Tab.Recents.name, stringResource(Tab.Recents.labelRes), Icons.Default.History),
+        MoogTabItem(Tab.Contacts.name, stringResource(Tab.Contacts.labelRes), Icons.Default.Person),
+        MoogTabItem(Tab.Keypad.name, stringResource(Tab.Keypad.labelRes), Icons.Default.Dialpad),
+        MoogTabItem(Tab.Settings.name, stringResource(Tab.Settings.labelRes), Icons.Default.Settings)
     )
     MoogTabBar(
         items = items,
