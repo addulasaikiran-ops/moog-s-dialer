@@ -101,7 +101,7 @@ private val DarkTokens = MoogColorTokens(
     secondaryLabel = Color(0xFFC3C0B6),
     separator = Color(0xFF777A70).copy(alpha = 0.62f),
     accent = MoogAccentPalettes.analogAmberDark,
-    green = Color(0xFF36B96B),
+    green = Color(0xFF168047),
     red = Color(0xFFFF6B60),
     fill = Color(0xFF30332D),
     keyFill = Color(0xFF30332D)
