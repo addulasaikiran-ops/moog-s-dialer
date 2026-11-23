@@ -1,6 +1,7 @@
 package com.moog.dialer.ui.screens
 
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -306,5 +307,35 @@ internal fun KeypadScreen(
             }
         }
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Preview(name = "Keypad · Light", showBackground = true)
+@Composable
+private fun KeypadScreenLightPreview() {
+    MoogTheme {
+        KeypadScreen(
+            number = "",
+            contacts = emptyList(),
+            onNumberChange = {},
+            onDelete = {},
+            onDial = {},
+            onChooseContact = {}
+        )
+    }
+}
+
+@Preview(name = "Keypad · Dark", showBackground = true)
+@Composable
+private fun KeypadScreenDarkPreview() {
+    MoogTheme(forceDark = true) {
+        KeypadScreen(
+            number = "",
+            contacts = emptyList(),
+            onNumberChange = {},
+            onDelete = {},
+            onDial = {},
+            onChooseContact = {}
+        )
     }
 }
