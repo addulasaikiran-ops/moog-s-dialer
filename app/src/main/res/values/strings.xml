@@ -138,7 +138,8 @@
     <string name="appearance_system">System</string>
     <string name="appearance_light">Light</string>
     <string name="appearance_dark">Dark</string>
-    <string name="appearance_footer">System follows your phone\'s display setting.</string>
+    <string name="appearance_dynamic">Material You</string>
+    <string name="appearance_footer">System follows your phone\'s display setting. Material You uses your Android wallpaper colors on Android 12 and newer.</string>
     <string name="built_for_connections">Built for your everyday connections.</string>
     <string name="contacts_count">%1$d Contacts</string>
     <string name="blocked_by_you">On your blocklist · blocked by you</string>
