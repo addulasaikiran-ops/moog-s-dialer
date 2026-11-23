@@ -29,6 +29,19 @@ class MoogInCallService : InCallService() {
             return
         }
         refreshCallNotification()
+
+        // Outgoing calls originate from the foreground dialer. Bring MOOG's
+        // in-call UI forward immediately instead of leaving the user on the
+        // dial pad or relying on a notification tap.
+        if (call.state == Call.STATE_DIALING || call.state == Call.STATE_CONNECTING) {
+            runCatching {
+                startActivity(
+                    Intent(this, InCallActivity::class.java).addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    )
+                )
+            }
+        }
     }
 
     override fun onCallRemoved(call: Call) {
