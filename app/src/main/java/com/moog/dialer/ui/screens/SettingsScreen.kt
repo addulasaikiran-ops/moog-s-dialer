@@ -193,7 +193,12 @@ internal fun SettingsScreen(
                 MoogGroupedSection(title = stringResource(R.string.appearance), footer = stringResource(R.string.appearance_footer)) {
                     Column(Modifier.fillMaxWidth().padding(12.dp)) {
                         MoogSegmentedControl(
-                            options = listOf(stringResource(R.string.appearance_system), stringResource(R.string.appearance_light), stringResource(R.string.appearance_dark)),
+                            options = listOf(
+                                stringResource(R.string.appearance_system),
+                                stringResource(R.string.appearance_light),
+                                stringResource(R.string.appearance_dark),
+                                stringResource(R.string.appearance_dynamic)
+                            ),
                             selectedIndex = appearanceMode.ordinal,
                             onSelected = { index ->
                                 appearanceMode = MoogAppearanceMode.values()[index]
