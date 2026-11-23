@@ -1,6 +1,7 @@
 package com.moog.dialer.ui.screens
 
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -309,5 +310,49 @@ internal fun SettingsScreen(
                 )
             }
         }
+    }
+}
+
+@Preview(name = "Settings · Light", showBackground = true)
+@Composable
+private fun SettingsScreenLightPreview() {
+    MoogTheme {
+        SettingsScreen(
+            isDefaultDialer = false,
+            hasNotificationPermission = false,
+            canUseFullScreenIntent = false,
+            hasPhoneStatePermission = false,
+            phoneAccounts = emptyList(),
+            selectedPhoneAccountKey = null,
+            onSelectPhoneAccount = {},
+            onRequestPhoneState = {},
+            onRequestPhoneRole = {},
+            onRequestNotifications = {},
+            onRequestFullScreenIntent = {},
+            onOpenSpamProtection = {},
+            onOpenVoicemail = {}
+        )
+    }
+}
+
+@Preview(name = "Settings · Dark", showBackground = true)
+@Composable
+private fun SettingsScreenDarkPreview() {
+    MoogTheme(forceDark = true) {
+        SettingsScreen(
+            isDefaultDialer = false,
+            hasNotificationPermission = false,
+            canUseFullScreenIntent = false,
+            hasPhoneStatePermission = false,
+            phoneAccounts = emptyList(),
+            selectedPhoneAccountKey = null,
+            onSelectPhoneAccount = {},
+            onRequestPhoneState = {},
+            onRequestPhoneRole = {},
+            onRequestNotifications = {},
+            onRequestFullScreenIntent = {},
+            onOpenSpamProtection = {},
+            onOpenVoicemail = {}
+        )
     }
 }
